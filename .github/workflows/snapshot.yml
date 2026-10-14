@@ -24,16 +24,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Snapshot Vast.ai marketplace
+      - name: Refresh live inputs (Vast.ai rent-in prices, EIA power prices)
         if: github.event_name != 'push'
+        env:
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
         run: python fetch.py
       - name: Commit snapshot
         if: github.event_name != 'push'
         run: |
-          git config user.name "radar-bot"
-          git config user.email "radar-bot@users.noreply.github.com"
-          git add site/data.json site/history.json
-          git diff --cached --quiet || git commit -m "Snapshot $(date -u +%FT%H:%MZ)"
+          git config user.name "inputs-bot"
+          git config user.email "inputs-bot@users.noreply.github.com"
+          git add site/data.json
+          git diff --cached --quiet || git commit -m "Inputs $(date -u +%FT%H:%MZ)"
           git push
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

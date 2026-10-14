@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GPU Price Radar</title>
-<meta name="description" content="Where Thunder Compute's on-demand GPU prices sit in the live Vast.ai marketplace, refreshed every 6 hours.">
+<title>GPU Unit Economics</title>
+<meta name="description" content="Buy, lease or rent-in: what one GPU earns under each supply choice across utilisation and pooling, with live rent-in and power inputs.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -13,8 +13,8 @@
 :root{
   --bg:#07070a; --panel:#0e0e12; --panel-2:#141419; --line:#202026; --line-2:#2c2c34;
   --ink:#fdfffa; --ink-2:#b2b2b2; --ink-3:#6e6e78;
-  --brand:#8cc8ff; --brand-2:#abd5ff; --brand-deep:#1a2b3d; --brand-layer:#305073;
-  --up:#ff9290; --down:#beffb5; --warn:#ffd28c;
+  --brand:#8cc8ff; --brand-deep:#1a2b3d;
+  --buy:#8cc8ff; --lease:#ffd28c; --rent:#beffb5; --neg:#ff9290;
   --sans:"Geist","Helvetica Neue",Arial,sans-serif; --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   color-scheme:dark;
 }
@@ -23,263 +23,508 @@ html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
 a{color:var(--brand)}
 .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
-.mono,td.n,th.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-3)}
 header.top{border-bottom:1px solid var(--line)}
 header.top .wrap{display:flex;align-items:center;justify-content:space-between;height:60px;gap:16px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:500}
-.status{font-family:var(--mono);font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:8px}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--down);box-shadow:0 0 0 3px #2e382c}
-.hero{padding:56px 0 28px}
+.status{font-family:var(--mono);font-size:12px;color:var(--ink-3);text-align:right}
+.hero{padding:56px 0 24px}
 .kicker{font-family:var(--mono);font-size:12px;color:var(--brand);letter-spacing:.04em}
-h1{font-weight:500;font-size:clamp(30px,4.6vw,50px);line-height:1.1;letter-spacing:-.025em;margin:14px 0 14px;max-width:22ch}
-h1 .hl{color:var(--brand)}
-.lede{color:var(--ink-2);font-size:17px;max-width:64ch;margin:0}
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:32px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
-.card .l{font-size:12px;color:var(--ink-3);font-family:var(--mono)}
-.card .v{font-family:var(--mono);font-size:26px;margin-top:4px;letter-spacing:-.02em}
-.card .s{font-size:13px;color:var(--ink-2);margin-top:2px}
+h1{font-weight:500;font-size:clamp(30px,4.6vw,50px);line-height:1.1;letter-spacing:-.025em;margin:14px 0;max-width:20ch}
+.lede{color:var(--ink-2);font-size:17px;max-width:66ch;margin:0}
 h2{font-weight:500;font-size:22px;letter-spacing:-.015em;margin:0 0 6px}
-.sub{color:var(--ink-2);margin:0 0 18px;max-width:72ch;font-size:14px}
-section{padding:36px 0}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sub{color:var(--ink-2);margin:0 0 18px;max-width:74ch;font-size:14px}
+section{padding:28px 0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+
+/* controls */
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.ctl{padding:16px 18px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
+.ctl:nth-child(3n){border-right:0}
+.ctl:nth-last-child(-n+3){border-bottom:0}
+.ctl label,.ctl .lab{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-3);font-family:var(--mono);margin-bottom:8px}
+.ctl .val{color:var(--ink);font-family:var(--mono)}
+.ctl .hint{font-size:12px;color:var(--ink-3);margin-top:6px}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.seg button{flex:1;background:none;border:0;color:var(--ink-2);font:500 13px var(--sans);padding:8px 10px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line-2)}
+.seg button[aria-pressed=true]{background:var(--brand-deep);color:var(--brand)}
+input[type=range]{width:100%;accent-color:var(--brand);margin:0}
+.pair{display:flex;gap:10px;align-items:center}
+.pair input[type=range]{flex:1}
+input.num,select{background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink);font:14px var(--mono);border-radius:6px;padding:6px 8px;width:100%}
+input.num:focus,select:focus{outline:none;border-color:var(--brand)}
+.dollar{position:relative}
+.dollar::before{content:"$";position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-3);font:14px var(--mono)}
+.dollar input{padding-left:20px}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{padding:18px 18px 16px;border-top:2px solid var(--c)}
+.card .name{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card .name b{font-weight:500;font-size:16px;color:var(--c)}
+.card .name span{font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+.card .big{font-family:var(--mono);font-size:30px;letter-spacing:-.02em;margin-top:10px;line-height:1.1}
+.card .big small{font-size:13px;color:var(--ink-3);letter-spacing:0}
+.card .mo{font-family:var(--mono);font-size:13px;color:var(--ink-2);margin-top:2px}
+.card dl{display:grid;grid-template-columns:1fr auto;gap:5px 10px;margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:13px}
+.card dt{color:var(--ink-2)}
+.card dd{margin:0;font-family:var(--mono);text-align:right}
+.card .stack{margin-top:12px;font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+.card.lead{background:linear-gradient(var(--panel),var(--panel)) padding-box}
+.badge{font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:5px;border:1px solid var(--c);color:var(--c)}
+.neg{color:var(--neg)}
+.verdict{margin:16px 0 0;font-size:14px;color:var(--ink-2);max-width:90ch}
+.verdict b{color:var(--ink);font-weight:500}
+
+/* chart */
+.chart{padding:18px 18px 10px}
+.chart-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.chart h3{margin:0;font-weight:500;font-size:15px}
+.chart .hint{font-size:12px;color:var(--ink-3);margin:2px 0 6px}
+svg text{font-family:var(--mono);font-size:10px;fill:var(--ink-3)}
+.xover{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink-2);padding:10px 2px 6px;border-top:1px solid var(--line);margin-top:6px}
+.xover span b{font-weight:500;color:var(--ink)}
+
+/* tables */
 .scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th{font-weight:500;font-size:12px;color:var(--ink-3);text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:500;font-size:12px;color:var(--ink-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:0}
-th.n,td.n{text-align:right}
-tbody tr{cursor:pointer}
-tbody tr:hover td{background:var(--panel-2)}
-tbody tr.sel td{background:var(--brand-deep)}
-tr.comp td:first-child{padding-left:28px;color:var(--ink-2)}
-.gpu{font-weight:500}
-.tag{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:5px;border:1px solid var(--line-2);color:var(--ink-2)}
-.tag.flag{border-color:#5a4a2c;color:var(--warn);background:#221c12}
-.tag.ok{border-color:#2e382c;color:var(--down);background:#121412}
-.tag.thin{border-color:#402e2e;color:var(--up);background:#160f0f}
-.posbar{position:relative;width:120px;height:6px;background:var(--line);border-radius:3px;display:inline-block;vertical-align:middle;margin-right:8px}
-.posbar i{position:absolute;top:-3px;width:3px;height:12px;border-radius:2px;background:var(--brand)}
-.muted{color:var(--ink-3)}
-.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
-.chart{padding:18px 18px 10px}
-.chart h3{margin:0;font-weight:500;font-size:15px}
-.chart .hint{font-size:12px;color:var(--ink-3);margin:2px 0 10px}
-svg text{font-family:var(--mono);font-size:10px;fill:var(--ink-3)}
-.ladder{padding:18px}
-.ladder .row{display:grid;grid-template-columns:130px 1fr 60px;align-items:center;gap:10px;font-size:13px;padding:4px 0}
-.ladder .bar{height:8px;border-radius:4px;background:var(--line-2)}
-.ladder .row.thunder .bar{background:var(--brand)}
-.ladder .row.vast .bar{background:var(--brand-layer)}
-.ladder .row.thunder span:first-child{color:var(--brand);font-weight:500}
-.ladder .row span:last-child{text-align:right;font-family:var(--mono)}
-.notes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.notes .card p{margin:6px 0 0;font-size:13px;color:var(--ink-2)}
-.notes .card h3{margin:0;font-size:14px;font-weight:500}
-pre{font-family:var(--mono);font-size:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;color:var(--ink-2);overflow-x:auto;margin:0}
-footer{border-top:1px solid var(--line);padding:24px 0 48px;color:var(--ink-3);font-size:13px}
-footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.tip{position:fixed;pointer-events:none;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink);font:12px var(--mono);padding:6px 8px;border-radius:6px;opacity:0;z-index:10}
-@media (max-width:860px){.cards{grid-template-columns:repeat(2,1fr)}.grid2,.notes{grid-template-columns:1fr}}
-@media (max-width:480px){.wrap{padding:0 16px}.hero{padding:36px 0 16px}.status span{display:none}.posbar{width:60px}.ladder .row{grid-template-columns:100px 1fr 52px}}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.grp td{font-family:var(--mono);font-size:12px;color:var(--brand);padding-top:16px;border-bottom:0}
+td .num{max-width:120px;text-align:right}
+.basis{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:5px;border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
+.basis.live{border-color:#2e4a2a;color:var(--rent)}
+.basis.est{border-color:#4a3e25;color:var(--lease)}
+td.src{font-size:13px;color:var(--ink-2);min-width:260px}
+td.src a{color:var(--ink-2)}
+.edited{border-color:#305073}
+.btn{background:none;border:1px solid var(--line-2);color:var(--ink-2);font:13px var(--sans);padding:6px 12px;border-radius:7px;cursor:pointer}
+.btn:hover{color:var(--ink);border-color:var(--ink-3)}
+.notes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.notes .panel{padding:16px 18px}
+.notes h3{margin:0;font-size:14px;font-weight:500}
+.notes p{margin:6px 0 0;font-size:13px;color:var(--ink-2)}
+footer{border-top:1px solid var(--line);padding:24px 0 48px;color:var(--ink-3);font-size:13px;margin-top:20px}
+.tip{position:fixed;pointer-events:none;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink);font:12px/1.5 var(--mono);padding:7px 9px;border-radius:6px;opacity:0;z-index:10;white-space:nowrap}
+
+@media (max-width:860px){
+  .controls{grid-template-columns:1fr 1fr}
+  .ctl{border-right:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important}
+  .ctl:nth-child(2n){border-right:0!important}
+  .ctl:nth-last-child(-n+2){border-bottom:0!important}
+  .cards,.notes{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  td.src{min-width:200px}
+  .wrap{padding:0 16px}
+  .hero{padding:36px 0 16px}
+  .controls{grid-template-columns:1fr}
+  .ctl{border-right:0!important;border-bottom:1px solid var(--line)!important}
+  .ctl:last-child{border-bottom:0!important}
+  .status .long{display:none}
+}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <div class="brand"><svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true"><path d="M18 2 6 18h8l-2 12 13-17h-8z" fill="var(--brand)"/></svg>GPU Price Radar</div>
-  <div class="status"><i class="dot"></i><span id="status">loading</span></div>
+  <div class="brand"><svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true"><path d="M18 2 6 18h8l-2 12 13-17h-8z" fill="var(--brand)"/></svg>GPU Unit Economics</div>
+  <div class="status" id="status">loading inputs</div>
 </div></header>
 
 <div class="wrap hero">
-  <div class="kicker">// Thunder Compute vs the live Vast.ai marketplace</div>
-  <h1 id="headline">Where Thunder's price sits in the live GPU market.</h1>
-  <p class="lede" id="lede">Every on-demand host listed on Vast.ai for the GPUs Thunder sells, snapshotted every 6 hours. Hyperscaler list prices barely move. The marketplace layer is where price pressure shows up first.</p>
-  <div class="cards" id="cards"></div>
+  <div class="kicker">// A supply-decision model, built to be filled with your real numbers</div>
+  <h1>Buy, lease or rent-in: where the break-even sits for each GPU.</h1>
+  <p class="lede">What one physical GPU earns under each supply choice, across a range of utilisation and pooling. The defaults are public, sourced and dated, so they will be wrong for any specific operator. Replace them with real costs and everything below redraws. Nothing here estimates any company's actual margins.</p>
 </div>
 
 <main class="wrap">
+  <section style="padding-top:0">
+    <div class="panel controls" id="controls">
+      <div class="ctl">
+        <div class="lab">GPU</div>
+        <div class="seg" id="gpuSeg"></div>
+        <div class="hint" id="gpuHint"></div>
+      </div>
+      <div class="ctl">
+        <label for="price">Sell price, $/GPU-hr</label>
+        <div class="dollar"><input class="num" id="price" type="number" step="0.01" min="0"></div>
+        <div class="hint" id="priceHint"></div>
+      </div>
+      <div class="ctl">
+        <label>Realised price, % of sell price <span class="val" id="realV"></span></label>
+        <div class="pair"><input type="range" id="realLo" min="50" max="100" step="1" aria-label="Realised price low"><input type="range" id="realHi" min="50" max="100" step="1" aria-label="Realised price high"></div>
+        <div class="hint">Discounts, credits and committed-use deals. Simulated as a range.</div>
+      </div>
+      <div class="ctl">
+        <label>Utilisation range <span class="val" id="utilV"></span></label>
+        <div class="pair"><input type="range" id="utilLo" min="0" max="100" step="1" aria-label="Utilisation low"><input type="range" id="utilHi" min="0" max="100" step="1" aria-label="Utilisation high"></div>
+        <div class="hint">Share of hours a physical GPU has paying work attached.</div>
+      </div>
+      <div class="ctl">
+        <label for="pool">Pooling factor <span class="val" id="poolV"></span></label>
+        <input type="range" id="pool" min="1" max="3" step="0.05">
+        <div class="hint">Billed GPU-hours per attached physical GPU-hour. 1.0× is one customer per GPU; virtualised pooling raises it. Set it to your measured ratio.</div>
+      </div>
+      <div class="ctl">
+        <label for="state">Power price, state <span class="val" id="stateV"></span></label>
+        <select id="state"></select>
+        <label for="life" style="margin:14px 0 8px">Depreciation life <span class="val" id="lifeV"></span></label>
+        <input type="range" id="life" min="3" max="7" step="0.5">
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="cards" id="cards"></div>
+    <p class="verdict" id="verdict"></p>
+  </section>
+
   <section>
-    <h2>Position by GPU</h2>
-    <p class="sub">One row per GPU Thunder sells, with the closest comparables indented under it. "Cheaper than" is the share of Vast.ai hosts listing a higher per-GPU price. Sorted by how much Thunder's position moved since the last snapshot. Click a row to chart it.</p>
-    <div class="panel scroll"><table id="tbl"></table></div>
-  </section>
-
-  <section style="padding-top:0">
-    <div class="grid2">
-      <div class="panel chart">
-        <h3 id="c1t">Today's offers</h3>
-        <div class="hint" id="c1h"></div>
-        <svg id="strip" width="100%" height="150" role="img" aria-label="Distribution of current offers"></svg>
-        <h3 style="margin-top:14px">Market median over time</h3>
-        <div class="hint" id="c2h"></div>
-        <svg id="line" width="100%" height="170" role="img" aria-label="Market median over time against Thunder price"></svg>
+    <div class="panel chart">
+      <div class="chart-head">
+        <h3>Margin per physical GPU-hour against utilisation</h3>
+        <span class="hint" id="chartHint"></span>
       </div>
-      <div class="panel ladder">
-        <h3 style="margin:0;font-weight:500;font-size:15px">H100 80GB, per GPU-hour</h3>
-        <div class="hint" style="font-size:12px;color:var(--ink-3);margin:2px 0 12px" id="ladh"></div>
-        <div id="ladder"></div>
-      </div>
+      <div class="hint">Lines use the midpoint of the realised-price range. The shaded band is the utilisation range you set. Dots on zero are break-even points.</div>
+      <div id="chart"></div>
+      <div class="xover" id="xover"></div>
     </div>
   </section>
 
-  <section style="padding-top:0">
-    <h2>How it's built</h2>
+  <section>
+    <h2>Pooling moves the break-even</h2>
+    <p class="sub">Break-even utilisation for each option at different pooling factors, at the midpoint realised price. Every other input stays as set above. A dash means the option doesn't break even at any utilisation up to 100%.</p>
+    <div class="panel scroll"><table id="poolTbl"></table></div>
+  </section>
+
+  <section>
+    <div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap">
+      <div>
+        <h2>Assumptions</h2>
+        <p class="sub" style="margin-bottom:18px">Every default, with its basis and source. The cost inputs are editable here, per GPU. <span class="basis live">live</span> refreshes every 6 hours. <span class="basis">sourced</span> comes from a published figure. <span class="basis est">estimate</span> has no single public source, so check it first.</p>
+      </div>
+      <button class="btn" id="reset" type="button">Reset to defaults</button>
+    </div>
+    <div class="panel scroll"><table id="assume"></table></div>
+  </section>
+
+  <section>
+    <h2>Method</h2>
     <div class="notes">
-      <div class="card"><h3>Feed</h3><p>Vast.ai's public <span class="mono">bundles</span> search, no key. Hosts list the same machine several times as 1, 2, 4 and 8-GPU bundles, so each machine counts once at its cheapest per-GPU price. Prices include the default disk.</p></div>
-      <div class="card"><h3>Two baselines</h3><p><b>Cross-sectional, live now:</b> Thunder's percentile in today's distribution. <b>Time series, building:</b> each GPU's median against its own history. A move is flagged when it's more than 2 standard deviations from that GPU's usual 6-hour change, once 8 snapshots exist.</p></div>
-      <div class="card"><h3>Limits</h3><p>One marketplace. Vast hosts vary (community machines, unverified hosts, variable reliability), which is why datacenter-only medians are shown alongside. "Rented" is the share of listed hosts not rentable right now. Thunder prices are hardcoded with an as-of date.</p></div>
+      <div class="panel"><h3>Cost per physical GPU-hour</h3><p><b>Buy:</b> (GPU + server share) ÷ (life × 8,760 h), plus colocation per kW ÷ 730 h, plus metered power. Power scales between idle and peak draw with utilisation, times PUE. <b>Lease:</b> monthly rate ÷ 730 h, with hosting and power included. <b>Rent-in:</b> the hourly rate on every held hour, minus the idle hours you release.</p></div>
+      <div class="panel"><h3>Revenue and margin</h3><p>Revenue per physical GPU-hour = realised price × utilisation × pooling factor. Margin = revenue − cost. Break-even is the utilisation at which margin is zero. Crossovers are the utilisations at which two options earn the same.</p></div>
+      <div class="panel"><h3>Simulation</h3><p>5,000 draws, each sampling utilisation and realised price uniformly from your ranges and a rent-in price from its range. Cards show the median and the 10th–90th percentile band, and "ahead in" is the share of draws where an option earns the most. The seed is fixed, so the same inputs always give the same output.</p></div>
     </div>
-    <p class="sub" style="margin-top:16px">A GitHub Action runs <span class="mono">fetch.py</span> every 6 hours, writes the snapshot and appends to <span class="mono">history.json</span>. No backend. Source on <a href="https://github.com/JakeM-R/thunder-gpu-radar">GitHub</a>.</p>
+    <p class="sub" style="margin-top:16px">Out of scope: financing and cost of capital, tax, residual resale value, staff and software overhead, multi-GPU cluster networking, and per-second sandbox pricing. A real decision would also price lease and rent-in availability risk, which this model doesn't.</p>
   </section>
 </main>
 
-<footer><div class="wrap">
-  <span>Built by Jake Makking-Robinson as part of an application to Thunder Compute.</span>
-  <span>Data: Vast.ai public API · thundercompute.com/pricing · Not affiliated with Thunder Compute.</span>
-</div></footer>
+<footer><div class="wrap">Built by Jake Makking-Robinson. Rent-in prices from Vast.ai's public marketplace and power prices from the US EIA, refreshed by a GitHub Action. <span id="foot"></span></div></footer>
 <div class="tip" id="tip"></div>
 
 <script>
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const usd = v => v == null ? "–" : "$" + v.toFixed(2);
-const when = s => new Date(s).toLocaleString("en-GB", {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit", timeZone:"UTC"}) + " UTC";
-let D, H, sel = "h100-sxm";
+const H_MONTH = 730, H_YEAR = 8760, N_SIM = 5000, MIN_DC = 8;
+const OPTS = [
+  {key: "buy", name: "Buy", c: "var(--buy)"},
+  {key: "lease", name: "Lease", c: "var(--lease)"},
+  {key: "rent", name: "Rent-in", c: "var(--rent)"},
+];
 
-// Position of a price within a snapshot's stored quantiles (for history, where raw offers aren't kept).
-function posFromQ(q, price) {
-  const pts = [[q.min, 0], [q.p10, 10], [q.p25, 25], [q.p50, 50], [q.p75, 75], [q.p90, 90]].filter(p => p[0] != null);
-  if (!pts.length) return null;
-  if (price <= pts[0][0]) return 100;
-  for (let i = 1; i < pts.length; i++) if (price <= pts[i][0]) {
-    const [a, pa] = pts[i - 1], [b, pb] = pts[i];
-    return 100 - (pa + (b === a ? 0 : (price - a) / (b - a)) * (pb - pa));
-  }
-  return Math.max(0, 100 - 90 - 10 * (price - q.p90) / Math.max(q.p90 * .5, 1e-9));
-}
-const cheaperThan = (offers, price) => offers.length ? 100 * offers.filter(o => o.p > price).length / offers.length : null;
-const thunderFor = g => g.thunder ?? D.gpus.find(x => x.key === g.comparable_to)?.thunder;
+// Sources for every default. Dates are when the figure was published or checked.
+const SRC = {
+  thunder: ["Thunder Compute pricing page, checked 14 Oct 2026", "https://www.thundercompute.com/pricing"],
+  hgx: ["8-GPU HGX H100 server $216k–$320k; H100 street $24k–$40k per GPU (IntuitionLabs, 2026)", "https://intuitionlabs.ai/articles/nvidia-ai-gpu-pricing-guide"],
+  a100: ["New A100 80GB $9.5k–$14k (Cyfuture A100 price guide, 2025). Used units $4.7k–$5.4k (AMCompute appraisal, Aug 2026)", "https://www.amcompute.com/appraisals/a100-sxm4-80gb"],
+  dgxh: ["DGX H100 system power 10.2 kW max for 8 GPUs (NVIDIA datasheet) = 1.28 kW per GPU all-in", "https://www.nvidia.com/en-us/data-center/dgx-h100/"],
+  dgxa: ["DGX A100 system power 6.5 kW max for 8 GPUs (NVIDIA datasheet) = 0.81 kW per GPU all-in", "https://www.nvidia.com/en-us/data-center/dgx-a100/"],
+  colo: ["North American wholesale colocation averaged $195.94/kW-month in late 2025, excluding power (CBRE, via Encor Advisors). Retail runs $210–$470.", "https://encoradvisors.com/data-center-colocation-pricing/"],
+  pue: ["Industry average PUE 1.56 (Uptime Institute Global Data Center Survey 2024). Newer AI halls run lower.", "https://uptimeinstitute.com/resources/research-and-reports/uptime-institute-global-data-center-survey-results-2024"],
+  life: ["Amazon cut server life from 6 to 5 years in Jan 2025. CoreWeave uses 6 years for GPUs.", "https://beancount.io/blog/2026/07/10/gpu-cloud-depreciation-schedules-guide"],
+  leaseH: ["GMI Cloud private cloud H100 'as low as $2.50/GPU-hr' with a longer-term commitment × 730 h (2026)", "https://www.gmicloud.ai/blog/2026-cost-of-renting-or-uying-nvidia-h100-gpus-for-data-centers"],
+  leaseA: ["Proxy: A100 SXM 80GB rental median $1.02/GPU-hr, Jul 2026 (GPUPerHour) × 730 h. No published A100 term-lease rate was found.", "https://gpuperhour.com/rent/a100-sxm-80gb"],
+};
 
-function moveStats(key) {
-  const meds = H.map(h => h.gpus[key]?.p50).filter(v => v != null);
-  if (meds.length < 2) return {n: meds.length, last: null, z: null};
-  const ch = meds.slice(1).map((v, i) => Math.log(v / meds[i]));
-  const last = ch[ch.length - 1], prior = ch.slice(0, -1);
-  if (prior.length < 7) return {n: meds.length, last, z: null};
-  const mu = prior.reduce((a, b) => a + b, 0) / prior.length;
-  const sd = Math.sqrt(prior.reduce((a, b) => a + (b - mu) ** 2, 0) / (prior.length - 1)) || 1e-9;
-  return {n: meds.length, last, z: (last - mu) / sd};
-}
+const DEFAULTS = {
+  h100: {gpu: 28000, server: 5500, kw: 1.3, idle: 35, colo: 200, pue: 1.5, lease: 1825, release: 50},
+  a100: {gpu: 12000, server: 4000, kw: 0.8, idle: 35, colo: 200, pue: 1.5, lease: 745, release: 50},
+};
+const BASE = {gpuKey: "h100", realLo: 85, realHi: 100, utilLo: 40, utilHi: 80, pool: 1, state: "VA", life: 5};
 
-Promise.all([fetch("data.json", {cache: "no-cache"}).then(r => r.json()), fetch("history.json", {cache: "no-cache"}).then(r => r.json())])
-  .then(([d, h]) => { D = d; H = h; render(); })
-  .catch(e => { $("#status").textContent = "failed to load data"; console.error(e); });
+let D, S, P;  // data, global controls, per-GPU params
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const money = (v, d = 2) => (v < 0 ? "−$" : "$") + Math.abs(v).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const pct = v => v == null ? "–" : Math.round(v * 100) + "%";
+const q = (sorted, p) => { if (!sorted.length) return null; const k = (sorted.length - 1) * p, lo = Math.floor(k), hi = Math.min(lo + 1, sorted.length - 1); return sorted[lo] + (sorted[hi] - sorted[lo]) * (k - lo); };
 
-function render() {
-  $("#status").textContent = `snapshot ${when(D.generatedAt)} · ${H.length} in history`;
-  const h100 = D.gpus.find(g => g.key === "h100-sxm");
-  const ct = cheaperThan(h100.offers, h100.thunder);
-  const avail = h100.offers.filter(o => o.avail);
-  $("#headline").innerHTML = `Thunder's H100 is cheaper than <span class="hl">${Math.round(ct)}%</span> of live Vast.ai H100 hosts.`;
-  $("#lede").innerHTML = `At ${usd(h100.thunder)}/hr against a marketplace median of ${usd(h100.p50)}. But ${Math.round(100 * h100.rentedShare)}% of those ${h100.n} hosts are already rented: only ${avail.length} can be launched right now${avail.length ? `, from ${usd(avail[0].p)}` : ""}. Snapshotted every 6 hours, so the trend builds from here.`;
-  const main = D.gpus.filter(g => g.thunder);
-  $("#cards").innerHTML = main.map(g => {
-    const c = cheaperThan(g.offers, g.thunder);
-    return `<div class="card"><div class="l">${esc(g.label)}</div><div class="v">${Math.round(c)}%</div><div class="s">of ${g.n} hosts cost more than Thunder's ${usd(g.thunder)}</div></div>`;
-  }).join("");
-  renderTable(); renderCharts(); renderLadder();
+// ---------- rent-in supply from the Vast.ai snapshot ----------
+function rentBasis(g) {
+  const dc = g.offers.filter(o => o.dc && o.verified).map(o => o.p).sort((a, b) => a - b);
+  const ver = g.offers.filter(o => o.verified).map(o => o.p).sort((a, b) => a - b);
+  const useDc = dc.length >= MIN_DC, set = useDc ? dc : ver;
+  return {useDc, nDc: dc.length, nVer: ver.length, dcMedian: q(dc, .5), lo: +q(set, .25).toFixed(2), hi: +q(set, .75).toFixed(2), median: q(set, .5)};
 }
 
-function renderTable() {
-  const prev = H.length > 1 ? H[H.length - 2] : null;
-  const rows = D.gpus.map(g => {
-    const tp = thunderFor(g);
-    const pos = cheaperThan(g.offers, tp);
-    const posQNow = posFromQ(g, tp);
-    const pq = prev?.gpus[g.key];
-    const dPos = pq ? posQNow - posFromQ(pq, tp) : null;
-    const dMed = pq?.p50 ? (g.p50 - pq.p50) / pq.p50 : null;
-    return {g, tp, pos, dPos, dMed, mv: moveStats(g.key)};
-  });
-  // Group comparables under their Thunder SKU; order groups by |position change|, then by position.
-  const groups = rows.filter(r => r.g.thunder).sort((a, b) => (Math.abs(b.dPos ?? 0) - Math.abs(a.dPos ?? 0)) || (a.pos - b.pos));
-  const ordered = groups.flatMap(r => [r, ...rows.filter(c => c.g.comparable_to === r.g.key)]);
-  $("#tbl").innerHTML = `<thead><tr><th>GPU</th><th class="n">Thunder</th><th class="n">Vast p10</th><th class="n">Median</th><th class="n">p90</th><th class="n">DC median</th><th>Thunder cheaper than</th><th class="n">Rented</th><th class="n">Δ median</th><th>Flag</th></tr></thead><tbody>` +
-    ordered.map(({g, tp, pos, dMed, mv}) => {
-      const flag = g.n < 5 ? `<span class="tag thin">thin market</span>`
-        : mv.z == null ? `<span class="tag">baseline ${mv.n}/8</span>`
-        : Math.abs(mv.z) >= 2 ? `<span class="tag flag">unusual ${mv.last > 0 ? "rise" : "drop"}</span>` : `<span class="tag ok">normal</span>`;
-      return `<tr class="${g.thunder ? "" : "comp"} ${g.key === sel ? "sel" : ""}" data-k="${g.key}">
-        <td><span class="gpu">${esc(g.label)}</span>${g.thunder ? "" : ` <span class="muted" style="font-size:12px">vs Thunder ${esc(D.gpus.find(x => x.key === g.comparable_to).label.split(" ")[0])}</span>`}</td>
-        <td class="n">${g.thunder ? usd(g.thunder) : `<span class="muted">${usd(tp)}</span>`}</td>
-        <td class="n">${usd(g.p10)}</td><td class="n">${usd(g.p50)}</td><td class="n">${usd(g.p90)}</td>
-        <td class="n">${g.nDatacenter ? usd(g.dcP50) : `<span class="muted">–</span>`}</td>
-        <td><span class="posbar"><i style="left:calc(${pos ?? 0}% - 1px)"></i></span><span class="mono">${pos == null ? "–" : Math.round(pos) + "%"}</span> <span class="muted" style="font-size:12px">of ${g.n}</span></td>
-        <td class="n">${g.rentedShare == null ? "–" : Math.round(100 * g.rentedShare) + "%"}</td>
-        <td class="n" style="color:${dMed == null ? "var(--ink-3)" : dMed > 0 ? "var(--up)" : dMed < 0 ? "var(--down)" : "var(--ink-2)"}">${dMed == null ? "–" : (dMed > 0 ? "+" : "") + (100 * dMed).toFixed(1) + "%"}</td>
-        <td>${flag}</td></tr>`;
-    }).join("") + "</tbody>";
-  document.querySelectorAll("#tbl tbody tr").forEach(tr => tr.onclick = () => { sel = tr.dataset.k; renderTable(); renderCharts(); });
+function defaultsFor(key) {
+  const g = D.gpus.find(x => x.key === key), r = rentBasis(g);
+  return {...DEFAULTS[key], price: g.thunder, rentLo: r.lo, rentHi: r.hi};
 }
 
-function renderCharts() {
-  const g = D.gpus.find(x => x.key === sel), tp = thunderFor(g);
-  const tip = $("#tip");
-  // Strip plot of today's offers.
-  const svg = $("#strip"), W = svg.clientWidth || 600, Hh = 150, m = {l: 10, r: 10, t: 22, b: 26};
-  const vals = g.offers.map(o => o.p).concat([tp]);
-  const lo = Math.min(...vals) * .92, hi = Math.max(...vals) * 1.05;
-  const x = v => m.l + (v - lo) / (hi - lo) * (W - m.l - m.r);
-  const ticks = niceTicks(lo, hi, 5);
-  const rows = {}; const pts = g.offers.map(o => { const b = Math.round(x(o.p) / 7); rows[b] = (rows[b] || 0) + 1; return {...o, cx: x(o.p), cy: Hh - m.b - 8 - (rows[b] - 1) * 9}; });
-  svg.innerHTML = ticks.map(t => `<line x1="${x(t)}" x2="${x(t)}" y1="${m.t}" y2="${Hh - m.b}" stroke="var(--line)"/><text x="${x(t)}" y="${Hh - 8}" text-anchor="middle">$${t.toFixed(t < 1 ? 2 : 1)}</text>`).join("") +
-    `<line x1="${x(tp)}" x2="${x(tp)}" y1="${m.t - 6}" y2="${Hh - m.b}" stroke="var(--brand)" stroke-width="1.5" stroke-dasharray="3 3"/><text x="${x(tp)}" y="${m.t - 10}" text-anchor="middle" style="fill:var(--brand)">Thunder ${usd(tp)}</text>` +
-    (g.p50 ? `<line x1="${x(g.p50)}" x2="${x(g.p50)}" y1="${m.t + 10}" y2="${Hh - m.b}" stroke="var(--ink-3)"/><text x="${x(g.p50)}" y="${m.t + 6}" text-anchor="middle">median</text>` : "") +
-    pts.map((p, i) => `<circle cx="${p.cx}" cy="${p.cy}" r="3.6" fill="${p.avail ? "var(--brand-2)" : "transparent"}" stroke="${p.avail ? "var(--brand-2)" : "var(--ink-3)"}" stroke-width="1.2" data-i="${i}"/>`).join("");
-  svg.onmousemove = e => {
-    const c = e.target.closest("circle");
-    if (!c) { tip.style.opacity = 0; return; }
-    const p = pts[c.dataset.i];
-    tip.textContent = `${usd(p.p)}/GPU-hr · ${p.avail ? "available" : "rented"} · ${p.dc ? "datacenter" : "community"} · ${p.geo || "?"} · reliability ${p.rel}`;
-    tip.style.left = Math.min(e.clientX + 12, innerWidth - 340) + "px"; tip.style.top = e.clientY + 12 + "px"; tip.style.opacity = 1;
+// ---------- model ----------
+// Each option's margin per physical GPU-hour is linear in utilisation u: m(u) = a + b·u.
+function lines(p, realised) {
+  const pw = D.power.cents[S.state] / 100, rev = realised * S.pool;
+  const fixedBuy = (p.gpu + p.server) / (S.life * H_YEAR) + p.colo * p.kw / H_MONTH;
+  const idleKw = p.kw * p.idle / 100, busyKw = p.kw - idleKw;
+  const rent = (p.rentLo + p.rentHi) / 2, rel = p.release / 100;
+  return {
+    buy: {a: -(fixedBuy + idleKw * p.pue * pw), b: rev - busyKw * p.pue * pw},
+    lease: {a: -p.lease / H_MONTH, b: rev},
+    rent: {a: -rent * (1 - rel), b: rev - rent * rel},
   };
-  svg.onmouseleave = () => tip.style.opacity = 0;
-  $("#c1t").textContent = `${g.label}: today's offers`;
-  $("#c1h").innerHTML = `${g.n} hosts. Filled dots can be launched now, hollow dots are rented.${g.thunder ? "" : ` Line shows Thunder's ${esc(D.gpus.find(x => x.key === g.comparable_to).label)} price for comparison.`}`;
+}
+const at = (l, u) => l.a + l.b * u;
+const breakEven = l => { if (l.b <= 0) return null; const u = -l.a / l.b; return u >= 0 && u <= 1 ? u : null; };
 
-  // Median over time with p10–p90 band.
-  const ls = $("#line"), LW = ls.clientWidth || 600, LH = 170, lm = {l: 44, r: 12, t: 12, b: 24};
-  const series = H.map(h => ({t: new Date(h.t), q: h.gpus[g.key]})).filter(s => s.q && s.q.p50 != null);
-  const all = series.flatMap(s => [s.q.p10, s.q.p90]).concat([tp]).filter(v => v != null);
-  const ylo = Math.min(...all) * .9, yhi = Math.max(...all) * 1.08;
-  const t0 = series[0]?.t.getTime() ?? Date.now(), t1 = Math.max(series[series.length - 1]?.t.getTime() ?? t0, t0 + 6 * 3600e3);
-  const X = t => lm.l + (t - t0) / (t1 - t0) * (LW - lm.l - lm.r), Y = v => LH - lm.b - (v - ylo) / (yhi - ylo) * (LH - lm.t - lm.b);
-  const yt = niceTicks(ylo, yhi, 4);
-  const band = series.length > 1 ? `<path d="M${series.map(s => `${X(s.t)},${Y(s.q.p90)}`).join("L")}L${series.slice().reverse().map(s => `${X(s.t)},${Y(s.q.p10)}`).join("L")}Z" fill="var(--brand-deep)"/>` : "";
-  ls.innerHTML = yt.map(v => `<line x1="${lm.l}" x2="${LW - lm.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${lm.l - 6}" y="${Y(v) + 3}" text-anchor="end">$${v.toFixed(v < 1 ? 2 : 1)}</text>`).join("") + band +
-    `<line x1="${lm.l}" x2="${LW - lm.r}" y1="${Y(tp)}" y2="${Y(tp)}" stroke="var(--brand)" stroke-dasharray="3 3"/><text x="${LW - lm.r}" y="${Y(tp) - 5}" text-anchor="end" style="fill:var(--brand)">Thunder</text>` +
-    (series.length > 1 ? `<path d="M${series.map(s => `${X(s.t)},${Y(s.q.p50)}`).join("L")}" fill="none" stroke="var(--ink)" stroke-width="1.5"/>` : "") +
-    series.map(s => `<circle cx="${X(s.t)}" cy="${Y(s.q.p50)}" r="2.5" fill="var(--ink)"/>`).join("") +
-    (series.length ? `<text x="${lm.l}" y="${LH - 6}">${series[0].t.toISOString().slice(0, 10)}</text><text x="${LW - lm.r}" y="${LH - 6}" text-anchor="end">${series[series.length - 1].t.toISOString().slice(0, 10)}</text>` : "");
-  const mv = moveStats(g.key);
-  $("#c2h").textContent = `${series.length} snapshot${series.length === 1 ? "" : "s"} so far (every 6 hours). Band is p10 to p90. ${mv.z == null ? `Unusual-move flags start at 8 snapshots.` : `Latest 6-hour move: ${(100 * mv.last).toFixed(1)}%, z = ${mv.z.toFixed(1)}.`}`;
+function costAt(key, p, u, rentP) {
+  const pw = D.power.cents[S.state] / 100;
+  if (key === "buy") return (p.gpu + p.server) / (S.life * H_YEAR) + p.colo * p.kw / H_MONTH + p.kw * (p.idle / 100 + (1 - p.idle / 100) * u) * p.pue * pw;
+  if (key === "lease") return p.lease / H_MONTH;
+  return rentP * (1 - p.release / 100 * (1 - u));
 }
 
-function renderLadder() {
-  const h = D.gpus.find(g => g.key === "h100-sxm");
-  const rows = [["Vast.ai median", h.p50, "vast"], ["Thunder Compute", h.thunder, "thunder"], ...D.anchors.map(([n, v]) => [n, v, ""])].sort((a, b) => a[1] - b[1]);
-  const max = Math.max(...rows.map(r => r[1]));
-  $("#ladder").innerHTML = rows.map(([n, v, c]) => `<div class="row ${c}"><span>${esc(n)}</span><div class="bar" style="width:${100 * v / max}%"></div><span>${usd(v)}</span></div>`).join("");
-  $("#ladh").textContent = `Thunder's own comparison list (checked ${new Date(D.anchorsAsOf).toLocaleDateString("en-GB", {day: "numeric", month: "short"})}) with today's Vast.ai median added. Thunder prices as of ${new Date(D.thunderAsOf).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"})}.`;
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function simulate(p) {
+  const rnd = mulberry(20261014), out = {buy: [], lease: [], rent: []}, lead = {buy: 0, lease: 0, rent: 0};
+  for (let i = 0; i < N_SIM; i++) {
+    const u = (S.utilLo + (S.utilHi - S.utilLo) * rnd()) / 100;
+    const price = p.price * (S.realLo + (S.realHi - S.realLo) * rnd()) / 100;
+    const rentP = p.rentLo + (p.rentHi - p.rentLo) * rnd();
+    let best = null, bestV = -Infinity;
+    for (const o of OPTS) {
+      const m = price * u * S.pool - costAt(o.key, p, u, rentP);
+      out[o.key].push(m);
+      if (m > bestV) { bestV = m; best = o.key; }
+    }
+    lead[best]++;
+  }
+  const res = {};
+  for (const o of OPTS) {
+    const s = out[o.key].sort((a, b) => a - b);
+    res[o.key] = {p10: q(s, .1), p50: q(s, .5), p90: q(s, .9), loss: s.filter(v => v < 0).length / N_SIM, lead: lead[o.key] / N_SIM};
+  }
+  return res;
 }
 
-function niceTicks(lo, hi, n) {
-  const step0 = (hi - lo) / n, mag = 10 ** Math.floor(Math.log10(step0));
-  const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= step0);
-  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(4));
-  return out;
+// ---------- render ----------
+function render() {
+  const p = P[S.gpuKey], g = D.gpus.find(x => x.key === S.gpuKey), rb = rentBasis(g);
+  const realMid = p.price * (S.realLo + S.realHi) / 200, uMid = (S.utilLo + S.utilHi) / 200;
+  const L = lines(p, realMid), sim = simulate(p);
+
+  $("priceHint").textContent = `Thunder list: $${g.thunder.toFixed(2)}, as of ${fmtDate(D.thunderAsOf)}.`;
+  $("realV").textContent = `${S.realLo}–${S.realHi}%`;
+  $("utilV").textContent = `${S.utilLo}–${S.utilHi}%`;
+  $("poolV").textContent = S.pool.toFixed(2) + "×";
+  $("stateV").textContent = `${D.power.cents[S.state].toFixed(2)}¢/kWh`;
+  $("lifeV").textContent = S.life + " yrs";
+  $("gpuHint").textContent = `Rent-in sample: ${rb.useDc ? `${rb.nDc} datacenter verified hosts` : `${rb.nVer} verified hosts (datacenter n=${rb.nDc}, below ${MIN_DC})`}.`;
+
+  // cards
+  const order = OPTS.map(o => o.key).sort((a, b) => sim[b].p50 - sim[a].p50);
+  const leader = order[0];
+  $("cards").innerHTML = OPTS.map(o => {
+    const s = sim[o.key], be = breakEven(L[o.key]), cost = costAt(o.key, p, uMid, (p.rentLo + p.rentHi) / 2);
+    let stack;
+    if (o.key === "buy") {
+      const dep = (p.gpu + p.server) / (S.life * H_YEAR), colo = p.colo * p.kw / H_MONTH, pwr = cost - dep - colo;
+      stack = `${money(dep, 3)} depreciation + ${money(colo, 3)} colo + ${money(pwr, 3)} power`;
+    } else if (o.key === "lease") stack = `${money(p.lease, 0)}/month, hosting and power included`;
+    else stack = `${money((p.rentLo + p.rentHi) / 2)}/hr held, ${p.release}% of idle hours released`;
+    return `<div class="panel card${o.key === leader ? " lead" : ""}" style="--c:${o.c}">
+      <div class="name"><b>${o.name}</b>${o.key === leader ? `<span class="badge">highest median</span>` : `<span>cost ${money(cost, 2)}/hr</span>`}</div>
+      <div class="big ${s.p50 < 0 ? "neg" : ""}">${money(s.p50)}<small> /GPU-hr</small></div>
+      <div class="mo">${money(s.p50 * H_MONTH, 0)} per GPU-month, median</div>
+      <dl>
+        <dt>80% band, per GPU-month</dt><dd>${money(s.p10 * H_MONTH, 0)} to ${money(s.p90 * H_MONTH, 0)}</dd>
+        <dt>Break-even utilisation</dt><dd>${be == null ? "not reached" : pct(be)}</dd>
+        <dt>Chance of a loss</dt><dd>${pct(s.loss)}</dd>
+        <dt>Ahead in</dt><dd>${pct(s.lead)} of draws</dd>
+      </dl>
+      <div class="stack">Cost at ${pct(uMid)}: ${stack}</div>
+    </div>`;
+  }).join("");
+
+  const lname = OPTS.find(o => o.key === leader).name, second = OPTS.find(o => o.key === order[1]);
+  const gap = sim[leader].p50 - sim[order[1]].p50;
+  $("verdict").innerHTML = `On these inputs, <b>${lname}</b> earns the most per GPU at the median, ${money(gap * H_MONTH, 0)} per GPU-month ahead of ${second.name}, and leads in ${pct(sim[leader].lead)} of simulated draws. ` +
+    (sim[leader].lead < .7 ? "That lead isn't robust to the ranges you set, so the next supply choice depends on where utilisation actually lands." : "The ranking holds across most of the ranges you set.");
+
+  drawChart(L, p);
+  renderPool(p, realMid);
+  renderAssume(p, g, rb);
 }
-addEventListener("resize", () => D && renderCharts());
+
+function fmtDate(s) { return new Date(s + (s.length === 10 ? "T00:00:00Z" : "")).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric", timeZone: "UTC"}); }
+
+function drawChart(L, p) {
+  const box = $("chart"), W = Math.max(300, box.clientWidth), Hh = W < 520 ? 260 : 340;
+  const m = {l: 54, r: W < 520 ? 14 : 92, t: 16, b: 34}, iw = W - m.l - m.r, ih = Hh - m.t - m.b;
+  const ys = OPTS.flatMap(o => [at(L[o.key], 0), at(L[o.key], 1)]);
+  let y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys); const pad = (y1 - y0) * .08 || 1; y0 -= pad; y1 += pad;
+  const X = u => m.l + u * iw, Y = v => m.t + (y1 - v) / (y1 - y0) * ih;
+  const step = niceStep((y1 - y0) / 5), ticks = [];
+  for (let v = Math.ceil(y0 / step) * step; v <= y1; v += step) ticks.push(+v.toFixed(6));
+
+  let s = `<svg width="${W}" height="${Hh}" role="img" aria-label="Margin per GPU-hour against utilisation for buy, lease and rent-in">`;
+  s += `<rect x="${X(S.utilLo / 100)}" y="${m.t}" width="${Math.max(1, X(S.utilHi / 100) - X(S.utilLo / 100))}" height="${ih}" fill="#8cc8ff" opacity=".06"/>`;
+  for (const v of ticks) s += `<line x1="${m.l}" x2="${m.l + iw}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === 0 ? "#3a3a44" : "#18181d"}"/><text x="${m.l - 8}" y="${Y(v) + 3}" text-anchor="end">${money(v, step < .1 ? 2 : 1)}</text>`;
+  for (let u = 0; u <= 1.0001; u += .2) s += `<text x="${X(u)}" y="${m.t + ih + 18}" text-anchor="middle">${Math.round(u * 100)}%</text>`;
+  s += `<text x="${m.l + iw}" y="${m.t + ih + 32}" text-anchor="end">utilisation</text>`;
+
+  const ends = [];
+  for (const o of OPTS) {
+    const l = L[o.key];
+    s += `<line x1="${X(0)}" y1="${Y(at(l, 0))}" x2="${X(1)}" y2="${Y(at(l, 1))}" stroke="${o.c}" stroke-width="2"/>`;
+    const be = breakEven(l);
+    if (be != null) s += `<circle cx="${X(be)}" cy="${Y(0)}" r="4" fill="var(--bg)" stroke="${o.c}" stroke-width="2"/>`;
+    ends.push({o, y: Y(at(l, 1))});
+  }
+  // crossovers
+  const xs = crossovers(L);
+  for (const x of xs) s += `<line x1="${X(x.u)}" x2="${X(x.u)}" y1="${m.t}" y2="${m.t + ih}" stroke="#3a3a44" stroke-dasharray="3 4"/><circle cx="${X(x.u)}" cy="${Y(x.v)}" r="3.5" fill="var(--ink)"/>`;
+  // direct labels at the right edge, nudged apart
+  if (W >= 520) {
+    ends.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 14) ends[i].y = ends[i - 1].y + 14;
+    for (const e of ends) s += `<text x="${m.l + iw + 8}" y="${e.y + 4}" style="fill:${e.o.c};font-size:11px">${e.o.name}</text>`;
+  }
+  s += `<line id="hx" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" stroke="#55555f" opacity="0"/>`;
+  s += `<rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" id="hit"/></svg>`;
+  box.innerHTML = s;
+
+  $("chartHint").textContent = `${D.gpus.find(g => g.key === S.gpuKey).label} · ${S.pool.toFixed(2)}× pooling · ${S.state} power`;
+  $("xover").innerHTML = (W < 520 ? OPTS.map(o => `<span style="color:${o.c}">● ${o.name}</span>`).join("") : "") +
+    (xs.length ? xs.map(x => `<span><b>${x.lowName}</b> beats ${x.highName} below <b>${pct(x.u)}</b> utilisation</span>`).join("")
+      : `<span>No crossovers between 0% and 100%: the ranking is the same at every utilisation on these inputs.</span>`);
+
+  const hit = $("hit"), hx = $("hx"), tip = $("tip");
+  hit.addEventListener("mousemove", e => {
+    const r = hit.getBoundingClientRect(), u = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    hx.setAttribute("x1", X(u)); hx.setAttribute("x2", X(u)); hx.setAttribute("opacity", 1);
+    tip.innerHTML = `<div class="muted">${pct(u)} utilisation</div>` + OPTS.map(o => `<div><span style="color:${o.c}">${o.name}</span> ${money(at(L[o.key], u))}/hr</div>`).join("");
+    tip.style.opacity = 1;
+    tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px"; tip.style.top = e.clientY + 14 + "px";
+  });
+  hit.addEventListener("mouseleave", () => { tip.style.opacity = 0; hx.setAttribute("opacity", 0); });
+}
+
+function crossovers(L) {
+  const out = [];
+  for (let i = 0; i < OPTS.length; i++) for (let j = i + 1; j < OPTS.length; j++) {
+    const A = L[OPTS[i].key], B = L[OPTS[j].key];
+    if (Math.abs(A.b - B.b) < 1e-9) continue;
+    const u = (B.a - A.a) / (A.b - B.b);
+    if (u <= 0.005 || u >= 0.995) continue;
+    const lowFirst = at(A, u / 2) > at(B, u / 2);
+    out.push({u, v: at(A, u), lowName: (lowFirst ? OPTS[i] : OPTS[j]).name, highName: (lowFirst ? OPTS[j] : OPTS[i]).name});
+  }
+  return out.sort((a, b) => a.u - b.u);
+}
+
+function niceStep(raw) { const e = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
+
+function renderPool(p, realMid) {
+  const ks = [1, 1.25, 1.5, 2, 2.5, 3], keep = S.pool;
+  const rows = OPTS.map(o => {
+    const cells = ks.map(k => { S.pool = k; const be = breakEven(lines(p, realMid)[o.key]); return `<td class="n">${be == null ? "–" : pct(be)}</td>`; });
+    return `<tr><td style="color:${o.c};font-weight:500">${o.name}</td>${cells.join("")}</tr>`;
+  });
+  S.pool = keep;
+  $("poolTbl").innerHTML = `<thead><tr><th>Break-even utilisation</th>${ks.map(k => `<th class="n"${Math.abs(k - keep) < .001 ? ' style="color:var(--brand)"' : ""}>${k.toFixed(2)}×</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody>`;
+}
+
+function renderAssume(p, g, rb) {
+  const d = defaultsFor(S.gpuKey), isH = S.gpuKey === "h100";
+  const src = k => `<a href="${SRC[k][1]}" target="_blank" rel="noopener">${esc(SRC[k][0])}</a>`;
+  const field = (k, step, pre) => `<input class="num${p[k] !== d[k] ? " edited" : ""}" data-k="${k}" type="number" step="${step}" min="0" value="${p[k]}" aria-label="${k}">`;
+  const rows = [
+    ["Revenue"],
+    ["Sell price, $/GPU-hr", `<span class="mono">$${p.price.toFixed(2)}</span> <span class="muted">(set above)</span>`, "sourced", src("thunder") + ". Default is Thunder's list price."],
+    ["Buy"],
+    ["GPU capex, $", field("gpu", 500), "sourced", isH ? src("hgx") + ". Default sits inside the street range." : src("a100") + ". Default is mid new-unit range."],
+    ["Server share per GPU, $", field("server", 250), isH ? "sourced" : "est", isH ? "GPU + server share = $33.5k, the midpoint of the 8-GPU HGX server range ÷ 8." : "Chassis, CPU, NIC and storage per GPU slot. No current HGX A100 system quote was found."],
+    ["Power per GPU, kW (peak, all-in)", field("kw", .05), "sourced", src(isH ? "dgxh" : "dgxa")],
+    ["Idle draw, % of peak", field("idle", 5), "est", "Idle GPUs still draw power, and so do host CPUs, fans and NICs. Measure this on your own fleet."],
+    ["Colocation, $/kW-month (excl. power)", field("colo", 5), "sourced", src("colo")],
+    ["PUE", field("pue", .05), "sourced", src("pue")],
+    ["Depreciation life, years", `<span class="mono">${S.life}</span> <span class="muted">(set above)</span>`, "sourced", src("life")],
+    ["Power price, ¢/kWh", `<span class="mono">${D.power.cents[S.state].toFixed(2)}</span> <span class="muted">(${S.state})</span>`, "live", `${esc(D.power.source)}, period ${esc(D.power.period)}`],
+    ["Lease"],
+    ["Lease, $/GPU-month", field("lease", 5), isH ? "sourced" : "est", src(isH ? "leaseH" : "leaseA")],
+    ["Rent-in"],
+    ["Rent-in price low, $/GPU-hr", field("rentLo", .01), "live", rb.useDc
+      ? `25th percentile of ${rb.nDc} Vast.ai datacenter verified hosts`
+      : `25th percentile of ${rb.nVer} Vast.ai verified hosts. Only ${rb.nDc} datacenter verified hosts are listed (median $${rb.dcMedian?.toFixed(2) ?? "–"}), below the ${MIN_DC} needed for a like-for-like sample.`],
+    ["Rent-in price high, $/GPU-hr", field("rentHi", .01), "live", `75th percentile of the same sample, snapshot ${fmtDate(D.generatedAt)}. One price per machine (the cheapest per-GPU bundle).`],
+    ["Idle hours released, %", field("release", 5), "est", "How much idle rent-in capacity you hand back rather than hold. It depends on how reliably capacity can be re-acquired."],
+  ];
+  const cls = {live: "live", est: "est", sourced: ""};
+  $("assume").innerHTML = `<thead><tr><th>Input</th><th>Value</th><th>Basis</th><th>Source</th></tr></thead><tbody>` +
+    rows.map(r => r.length === 1 ? `<tr class="grp"><td colspan="4">${r[0]}</td></tr>`
+      : `<tr><td>${r[0]}</td><td>${r[1]}</td><td><span class="basis ${cls[r[2]]}">${r[2] === "est" ? "estimate" : r[2]}</span></td><td class="src">${r[3]}</td></tr>`).join("") + "</tbody>";
+  for (const inp of document.querySelectorAll("#assume input[data-k]")) inp.addEventListener("change", e => {
+    const v = parseFloat(e.target.value);
+    if (!isFinite(v) || v < 0) { e.target.value = p[e.target.dataset.k]; return; }
+    p[e.target.dataset.k] = v;
+    if (p.rentHi < p.rentLo) [p.rentLo, p.rentHi] = [p.rentHi, p.rentLo];
+    render();
+  });
+}
+
+// ---------- controls ----------
+function syncControls() {
+  const p = P[S.gpuKey];
+  $("gpuSeg").innerHTML = D.gpus.map(g => `<button type="button" data-k="${g.key}" aria-pressed="${g.key === S.gpuKey}">${esc(g.label.split(" ").slice(0, 1).join(" "))}</button>`).join("");
+  $("price").value = p.price.toFixed(2);
+  for (const k of ["realLo", "realHi", "utilLo", "utilHi", "pool", "life"]) $(k).value = S[k];
+  $("state").value = S.state;
+}
+
+function wire() {
+  $("state").innerHTML = Object.entries(D.power.cents).map(([k, v]) => `<option value="${k}">${k === "US" ? "US average" : k} · ${v.toFixed(2)}¢</option>`).join("");
+  $("gpuSeg").addEventListener("click", e => { const k = e.target.dataset?.k; if (k) { S.gpuKey = k; syncControls(); render(); } });
+  $("price").addEventListener("change", e => { const v = parseFloat(e.target.value); if (isFinite(v) && v > 0) P[S.gpuKey].price = v; syncControls(); render(); });
+  const pair = (lo, hi) => {
+    $(lo).addEventListener("input", () => { S[lo] = +$(lo).value; if (S[lo] > S[hi]) { S[hi] = S[lo]; $(hi).value = S[hi]; } render(); });
+    $(hi).addEventListener("input", () => { S[hi] = +$(hi).value; if (S[hi] < S[lo]) { S[lo] = S[hi]; $(lo).value = S[lo]; } render(); });
+  };
+  pair("realLo", "realHi"); pair("utilLo", "utilHi");
+  $("pool").addEventListener("input", e => { S.pool = +e.target.value; render(); });
+  $("life").addEventListener("input", e => { S.life = +e.target.value; render(); });
+  $("state").addEventListener("change", e => { S.state = e.target.value; render(); });
+  $("reset").addEventListener("click", () => { init(); });
+  let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 120); });
+}
+
+function init() {
+  S = {...BASE};
+  if (!D.power.cents[S.state]) S.state = Object.keys(D.power.cents)[0];
+  P = Object.fromEntries(D.gpus.map(g => [g.key, defaultsFor(g.key)]));
+  syncControls(); render();
+}
+
+fetch("data.json", {cache: "no-store"}).then(r => r.json()).then(data => {
+  D = data;
+  $("status").innerHTML = `<span class="long">Vast.ai </span>${fmtDate(D.generatedAt)} · <span class="long">power </span>${esc(D.power.period)}`;
+  $("foot").textContent = `Inputs refreshed ${D.generatedAt.slice(0, 16).replace("T", " ")} UTC.`;
+  wire(); init();
+}).catch(e => { $("status").textContent = "inputs failed to load"; console.error(e); });
 </script>
 </body>
 </html>

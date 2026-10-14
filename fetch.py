@@ -1,7 +1,11 @@
-"""GPU Price Radar: snapshot Vast.ai's public marketplace and append to history.
+"""GPU unit economics: refresh the live inputs.
 
-Runs every 6 hours from .github/workflows/snapshot.yml. No API key needed.
-Writes site/data.json (latest offers) and appends one row to site/history.json.
+Runs every 6 hours from .github/workflows/snapshot.yml. Standard library only.
+Writes site/data.json with:
+  - rent-in supply prices from Vast.ai's public marketplace (one price per machine),
+    tagged datacenter / verified so the page can use like-for-like hosts only;
+  - US commercial electricity prices by state from the EIA API (needs EIA_API_KEY;
+    without it the previous snapshot, or the sourced fallback below, is kept).
 """
 import json
 import os
@@ -13,114 +17,106 @@ import urllib.request
 from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-SITE = os.path.join(ROOT, "site")
+OUT = os.path.join(ROOT, "site", "data.json")
 VAST = "https://console.vast.ai/api/v0/bundles/"
-HISTORY_CAP = 4 * 365  # one year of 6-hourly rows
+EIA = "https://api.eia.gov/v2/electricity/retail-sales/data/"
 
-# Thunder's on-demand instance prices, from thundercompute.com/pricing on 14 Oct 2026.
+# Thunder's on-demand list prices, from thundercompute.com/pricing on 14 Oct 2026.
 THUNDER_AS_OF = "2026-10-14"
-
-# Each row: Vast gpu_name values that make up the market, an optional VRAM floor (MB),
-# Thunder's price for that SKU, or the Thunder SKU it is the closest comparable to.
 GPUS = [
-    {"key": "h100-sxm", "label": "H100 SXM 80GB", "vast": ["H100 SXM"], "thunder": 3.20},
-    {"key": "a100-80", "label": "A100 80GB", "vast": ["A100 SXM4", "A100 PCIE"], "min_ram": 79000, "thunder": 1.09},
-    {"key": "l40", "label": "L40 48GB", "vast": ["L40"], "thunder": 0.79},
-    {"key": "a6000", "label": "RTX A6000 48GB", "vast": ["RTX A6000"], "thunder": 0.35},
-    {"key": "h100-pcie", "label": "H100 PCIe 80GB", "vast": ["H100 PCIE"], "comparable_to": "h100-sxm"},
-    {"key": "h100-nvl", "label": "H100 NVL 94GB", "vast": ["H100 NVL"], "comparable_to": "h100-sxm"},
-    {"key": "l40s", "label": "L40S 48GB", "vast": ["L40S"], "comparable_to": "l40"},
-    {"key": "a100-40", "label": "A100 40GB", "vast": ["A100 SXM4", "A100 PCIE"], "max_ram": 79000, "comparable_to": "a100-80"},
+    {"key": "h100", "label": "H100 SXM 80GB", "vast": ["H100 SXM"], "thunder": 3.20},
+    {"key": "a100", "label": "A100 80GB", "vast": ["A100 SXM4", "A100 PCIE"], "min_ram": 79000, "thunder": 1.09},
 ]
 
-# Thunder's own H100 comparison ladder (on-demand list prices it shows, checked 13 Oct 2026).
-ANCHORS = [
-    ["Lambda", 3.29], ["Runpod", 3.99], ["Paperspace", 5.95], ["CoreWeave", 6.16],
-    ["AWS", 6.88], ["Azure", 6.98], ["Oracle Cloud", 10.00], ["Google Cloud", 10.98],
-]
+# States offered in the power picker: common US data-centre markets plus the US average.
+STATES = ["US", "VA", "TX", "GA", "OR", "WA", "AZ", "OH", "IL", "NY", "CA"]
+
+# Fallback: EIA Electric Power Monthly, Table 5.6.A, commercial sector, April 2026 (cents/kWh),
+# as republished by kilowattlogic.com. Replaced by the live API whenever EIA_API_KEY is set.
+POWER_FALLBACK = {
+    "period": "2026-04", "source": "EIA Electric Power Monthly Table 5.6.A (Apr 2026), via kilowattlogic.com",
+    "cents": {"US": 13.51, "VA": 10.33, "TX": 8.35, "GA": 10.56, "OR": 10.62, "WA": 11.74,
+              "AZ": 11.49, "OH": 13.65, "IL": 13.89, "NY": 21.88, "CA": 25.75},
+}
+
+
+def get(url, tries=5):
+    for attempt in range(tries):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "gpu-unit-economics"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.load(r)
+        except Exception as e:  # noqa: BLE001
+            if attempt == tries - 1:
+                raise
+            print(f"retry {url[:60]}: {e}", file=sys.stderr)
+            time.sleep(5 * (attempt + 1))
 
 
 def vast(gpu_name):
     q = {"gpu_name": {"eq": gpu_name}, "type": "on-demand", "limit": 3000}
-    url = f"{VAST}?q={urllib.parse.quote(json.dumps(q))}"
-    for attempt in range(5):
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "gpu-price-radar"})
-            with urllib.request.urlopen(req, timeout=60) as r:
-                return json.load(r)["offers"]
-        except Exception as e:  # noqa: BLE001
-            if attempt == 4:
-                raise
-            print(f"retry {gpu_name}: {e}", file=sys.stderr)
-            time.sleep(5 * (attempt + 1))
+    return get(f"{VAST}?q={urllib.parse.quote(json.dumps(q))}")["offers"]
 
 
-def pct(sorted_vals, p):
-    if not sorted_vals:
-        return None
-    k = (len(sorted_vals) - 1) * p
-    lo, hi = int(k), min(int(k) + 1, len(sorted_vals) - 1)
-    return round(sorted_vals[lo] + (sorted_vals[hi] - sorted_vals[lo]) * (k - lo), 4)
+def offers_for(g, raw):
+    # Vast lists the same host several times as fractional bundles (1, 2, 4, 8 GPUs).
+    # Keep the cheapest per-GPU price per machine.
+    per_machine = {}
+    for name in g["vast"]:
+        for o in raw[name]:
+            if not o.get("num_gpus") or o.get("dph_total") is None:
+                continue
+            ram = o.get("gpu_ram") or 0
+            if ram < g.get("min_ram", 0):
+                continue
+            price = round(o["dph_total"] / o["num_gpus"], 4)
+            m = per_machine.get(o["machine_id"])
+            if m is None or price < m["p"]:
+                per_machine[o["machine_id"]] = {
+                    "p": price, "dc": o.get("hosting_type") == 1,
+                    "verified": o.get("verification") == "verified",
+                    "geo": (o.get("geolocation") or "").split(",")[-1].strip(),
+                }
+    return sorted(per_machine.values(), key=lambda o: o["p"])
 
 
-def summarise(offers):
-    prices = sorted(o["p"] for o in offers)
-    dc = sorted(o["p"] for o in offers if o["dc"])
-    return {
-        "n": len(prices), "nAvailable": sum(o["avail"] for o in offers), "nDatacenter": len(dc),
-        "min": prices[0] if prices else None,
-        "p10": pct(prices, .1), "p25": pct(prices, .25), "p50": pct(prices, .5),
-        "p75": pct(prices, .75), "p90": pct(prices, .9),
-        "dcP50": pct(dc, .5),
-        "rentedShare": round(1 - sum(o["avail"] for o in offers) / len(offers), 3) if offers else None,
-    }
+def power(previous):
+    key = os.environ.get("EIA_API_KEY")
+    if not key:
+        print("EIA_API_KEY not set: keeping previous power snapshot", file=sys.stderr)
+        return previous or POWER_FALLBACK
+    params = [("api_key", key), ("frequency", "monthly"), ("data[0]", "price"),
+              ("facets[sectorid][]", "COM"), ("sort[0][column]", "period"),
+              ("sort[0][direction]", "desc"), ("length", "200")]
+    params += [("facets[stateid][]", s) for s in STATES]
+    rows = get(f"{EIA}?{urllib.parse.urlencode(params)}")["response"]["data"]
+    latest = max(r["period"] for r in rows)
+    cents = {r["stateid"]: float(r["price"]) for r in rows if r["period"] == latest and r.get("price")}
+    if len(cents) < len(STATES) // 2:
+        print(f"EIA returned {len(cents)} states for {latest}: keeping previous", file=sys.stderr)
+        return previous or POWER_FALLBACK
+    return {"period": latest, "source": "EIA API v2, electricity/retail-sales, commercial sector",
+            "cents": {s: cents[s] for s in STATES if s in cents}}
 
 
 def main():
     now = datetime.now(timezone.utc).replace(microsecond=0)
+    previous = json.load(open(OUT)) if os.path.exists(OUT) else {}
+
     raw = {name: vast(name) for name in sorted({n for g in GPUS for n in g["vast"]})}
-
-    rows = []
+    gpus = []
     for g in GPUS:
-        # One price per machine: Vast lists the same host several times as fractional
-        # bundles (1, 2, 4, 8 GPUs). Keep the cheapest per-GPU price per machine.
-        per_machine = {}
-        for name in g["vast"]:
-            for o in raw[name]:
-                if not o.get("num_gpus") or o.get("dph_total") is None:
-                    continue
-                ram = o.get("gpu_ram") or 0
-                if ram < g.get("min_ram", 0) or ram >= g.get("max_ram", 10**9):
-                    continue
-                price = o["dph_total"] / o["num_gpus"]
-                m = per_machine.get(o["machine_id"])
-                if m is None or price < m["p"]:
-                    per_machine[o["machine_id"]] = {
-                        "p": round(price, 4), "avail": bool(o.get("rentable") and not o.get("rented")),
-                        "dc": o.get("hosting_type") == 1, "verified": o.get("verification") == "verified",
-                        "geo": (o.get("geolocation") or "").split(",")[-1].strip(),
-                        "rel": round(o.get("reliability") or 0, 3),
-                    }
-                elif o.get("rentable") and not o.get("rented"):
-                    m["avail"] = True
-        offers = sorted(per_machine.values(), key=lambda o: o["p"])
-        rows.append({**{k: g.get(k) for k in ("key", "label", "thunder", "comparable_to")},
-                     "vastNames": g["vast"], "offers": offers, **summarise(offers)})
-        print(f'{g["label"]:<16} n={len(offers):>3} p50={rows[-1]["p50"]}', file=sys.stderr)
+        offers = offers_for(g, raw)
+        dc = [o["p"] for o in offers if o["dc"] and o["verified"]]
+        gpus.append({"key": g["key"], "label": g["label"], "thunder": g["thunder"], "offers": offers})
+        print(f'{g["label"]:<14} n={len(offers):>3} dc+verified={len(dc)} '
+              f'median={statistics.median(dc) if dc else None}', file=sys.stderr)
 
-    data = {"generatedAt": now.isoformat(), "thunderAsOf": THUNDER_AS_OF, "anchors": ANCHORS,
-            "anchorsAsOf": "2026-10-13", "gpus": rows}
-    os.makedirs(SITE, exist_ok=True)
-    with open(os.path.join(SITE, "data.json"), "w") as f:
+    data = {"generatedAt": now.isoformat(), "thunderAsOf": THUNDER_AS_OF,
+            "power": power(previous.get("power")), "gpus": gpus}
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with open(OUT, "w") as f:
         json.dump(data, f, separators=(",", ":"))
-
-    hist_path = os.path.join(SITE, "history.json")
-    history = json.load(open(hist_path)) if os.path.exists(hist_path) else []
-    history.append({"t": now.isoformat(), "gpus": {
-        r["key"]: {k: r[k] for k in ("n", "nAvailable", "min", "p10", "p25", "p50", "p75", "p90", "dcP50", "rentedShare")}
-        for r in rows}})
-    with open(hist_path, "w") as f:
-        json.dump(history[-HISTORY_CAP:], f, separators=(",", ":"))
 
 
 if __name__ == "__main__":
