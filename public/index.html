@@ -922,7 +922,7 @@ button.danger { color: var(--bad); border-color: var(--bad); }
     const ago = (d) => new Date(now - d * DAY).toISOString();
     const OPS = "Founding Strategy & Operations Generalist", APM = "Associate Product Manager";
     const rows = [
-      ["Jake Makking-Robinson", OPS, "Screened", 0, 4.43, "advance"],
+      ["Jake Makking-Robinson", OPS, "Interview", 1, 4.43, "advance"],
       ["Alex Morgan", OPS, "Screened", 4, 3.29, "human_review"],
       ["Casey Nolan", OPS, "Declined", 1, 1.43, "decline", "Screened"],
       ["Nadia Haddad", OPS, "Applied", 1],
@@ -1331,7 +1331,7 @@ Tell us about a decision you got wrong. I am a perfectionist so I rarely get dec
 
   // ---------- Tracker ----------
   const T = window.Tracker;
-  const KEY = "screening-desk-tracker-v3";
+  const KEY = "screening-desk-tracker-v4";
   const LABEL_SHORT = { advance: "advance", human_review: "human review", decline: "decline" };
   const trk = { items: [], role: "all", armed: null };
   function load() {
@@ -1397,8 +1397,9 @@ Tell us about a decision you got wrong. I am a perfectionist so I rarely get dec
       : `<li class="empty">Nothing is waiting longer than its target.</li>`;
 
     $("trkBody").closest("table").classList.toggle("one-role", trk.role !== "all");
-    const order = (c) => (c.stage === "Declined" ? 9 : -T.ALL.indexOf(c.stage));
-    const rows = [...scoped].sort((a, b) => order(a) - order(b) || T.daysIn(b, now) - T.daysIn(a, now));
+    // Highest screen score first; candidates not yet screened go last, longest-waiting first.
+    const score = (c) => (typeof c.mean === "number" ? c.mean : -1);
+    const rows = [...scoped].sort((a, b) => score(b) - score(a) || T.daysIn(b, now) - T.daysIn(a, now));
     $("trkBody").innerHTML = rows.length ? rows.map((c) => {
       const d = T.daysIn(c, now);
       const late = T.active(c) && d > T.TARGET_DAYS[c.stage];
