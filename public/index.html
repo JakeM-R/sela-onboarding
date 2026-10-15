@@ -1,0 +1,952 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Candidate Screening Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Takes a candidate from application to day one: rubric, evidence-quoted scores, interview kit, reply and onboarding pack. Runs entirely in the browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: one working column. Inputs, then the screen as a scorecard, then the reply and the onboarding pack. */
+:root {
+  --bg: #ffffff;
+  --surface: #f6f7f9;
+  --line: #e3e5ea;
+  --ink: #101318;
+  --ink-2: #474d58;
+  --ink-3: #7d8491;
+  --accent: #2346c7;
+  --accent-soft: #edf1fd;
+  --on-ink: #ffffff;
+  --good: #11743a;
+  --good-soft: #e6f4ec;
+  --warn: #8f5600;
+  --warn-soft: #fbf1df;
+  --bad: #b3261e;
+  --bad-soft: #fcebea;
+  --font-ui: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115; --surface: #171a20; --line: #2a2f38; --ink: #eef0f4; --ink-2: #b6bcc7; --ink-3: #868d99;
+    --accent: #8ea6ff; --accent-soft: #1a2240; --on-ink: #0f1115;
+    --good: #5fd08f; --good-soft: #13291d; --warn: #f0b45c; --warn-soft: #2d2213; --bad: #ff8a80; --bad-soft: #321716;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1115; --surface: #171a20; --line: #2a2f38; --ink: #eef0f4; --ink-2: #b6bcc7; --ink-3: #868d99;
+  --accent: #8ea6ff; --accent-soft: #1a2240; --on-ink: #0f1115;
+  --good: #5fd08f; --good-soft: #13291d; --warn: #f0b45c; --warn-soft: #2d2213; --bad: #ff8a80; --bad-soft: #321716;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--font-ui); }
+.wrap {
+  max-width: 1060px; margin: 0 auto;
+  padding-block: 40px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 36px;
+}
+header { display: grid; gap: 10px; }
+header h1 { font-size: 30px; line-height: 1.15; letter-spacing: -0.02em; margin: 0; font-weight: 700; text-wrap: balance; }
+header p { margin: 0; color: var(--ink-2); max-width: 68ch; }
+.byline { font-size: 13px; color: var(--ink-3); }
+.time {
+  padding: 12px 16px; border-radius: var(--radius); background: var(--accent-soft); color: var(--ink);
+  font-size: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline;
+}
+.time b { color: var(--accent); }
+section { display: grid; gap: 14px; min-width: 0; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600; margin: 0; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid > * { min-width: 0; display: grid; gap: 8px; align-content: start; }
+label.field { font-weight: 600; font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.hint { font-weight: 400; color: var(--ink-3); font-size: 13px; }
+textarea {
+  width: 100%; min-height: 320px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius);
+  font: 13px/1.55 var(--font-mono); color: var(--ink); background: var(--bg); resize: vertical;
+}
+textarea:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: 500 14px/1.2 var(--font-ui); border-radius: 8px; border: 1px solid var(--line); background: var(--bg);
+  color: var(--ink); padding: 9px 14px; cursor: pointer;
+}
+button:hover { border-color: var(--ink-3); }
+button.primary { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+button.primary:hover { opacity: 0.88; }
+button.chip { padding: 5px 11px; font-size: 13px; }
+button.chip.on, .seg button.on { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.status { font-size: 13px; color: var(--ink-2); }
+.error { color: var(--bad); background: var(--bad-soft); padding: 10px 14px; border-radius: var(--radius); font-size: 14px; }
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+.badge.sample { background: var(--warn-soft); color: var(--warn); }
+.badge.advance { background: var(--good-soft); color: var(--good); }
+.badge.human_review { background: var(--warn-soft); color: var(--warn); }
+.badge.decline { background: var(--bad-soft); color: var(--bad); }
+.card { border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; background: var(--bg); min-width: 0; display: grid; gap: 12px; align-content: start; }
+.headline { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.headline h3 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+.summary { color: var(--ink-2); margin: 6px 0 0; max-width: 70ch; }
+.mean { font-size: 13px; color: var(--ink-3); text-align: right; display: grid; gap: 6px; justify-items: end; font-variant-numeric: tabular-nums; }
+.tablebox { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-size: 12px; color: var(--ink-3); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td { padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.axis { width: 22%; font-weight: 600; }
+td.axis small { display: block; font-weight: 400; color: var(--ink-3); font-size: 12px; }
+td.score { width: 100px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.dot.on { background: var(--ink); }
+.num { font-weight: 600; margin-left: 6px; }
+blockquote { margin: 0 0 6px; padding: 4px 10px; border-left: 2px solid var(--good); color: var(--ink); font-size: 13px; }
+blockquote.none { border-color: var(--bad); background: var(--bad-soft); }
+.reason { color: var(--ink-2); font-size: 13px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+ol.q { padding-left: 20px; margin: 0; display: grid; gap: 12px; }
+ol.q .listen { display: block; color: var(--ink-3); font-size: 13px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; }
+pre.msg { white-space: pre-wrap; font: 14px/1.6 var(--font-ui); background: var(--surface); border-radius: var(--radius); padding: 14px; margin: 0; }
+.compare tr.pick { cursor: pointer; }
+.compare tr.pick:hover td, .compare tr.pick:focus-visible td { background: var(--surface); }
+.compare td, .compare th { font-variant-numeric: tabular-nums; }
+details { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }
+details summary { cursor: pointer; font-weight: 600; }
+.axislist { margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; }
+.axislist li { padding: 10px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+.kind { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.weeks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.week, .days > div { background: var(--surface); border-radius: var(--radius); padding: 14px; font-size: 13px; min-width: 0; }
+.week b, .days b { display: block; font-size: 14px; margin-bottom: 4px; }
+.week ul, .days ul { margin: 6px 0 0; padding-left: 16px; }
+.tag { font-size: 12px; color: var(--accent); }
+.check { list-style: none; padding: 0; margin: 0; font-size: 14px; }
+.check li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); align-items: baseline; flex-wrap: wrap; }
+.check small { color: var(--ink-3); margin-left: auto; }
+.days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+footer { font-size: 13px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 6px; }
+footer p { margin: 0; max-width: 90ch; }
+@media (max-width: 760px) {
+  .wrap { padding-block: 24px 56px; gap: 28px; }
+  header h1 { font-size: 24px; }
+  .grid, .two { grid-template-columns: 1fr; }
+  .weeks { grid-template-columns: 1fr 1fr; }
+  .days { grid-template-columns: 1fr; }
+  textarea { min-height: 220px; }
+  table.scores, table.scores tbody, table.scores tr, table.scores td { display: block; width: 100%; }
+  table.scores thead { display: none; }
+  table.scores tr { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  table.scores td { border: 0; padding: 4px 0; }
+  .mean { justify-items: start; text-align: left; }
+}
+@media (max-width: 440px) { .weeks { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>From application to day one</h1>
+    <p>Paste a job description and one candidate's CV and answers. It builds a rubric on Sela's three hiring values plus the role's must-haves, scores the candidate with the application line behind every score, writes the interview questions, drafts the reply, and on hire writes the onboarding pack.</p>
+    <div class="byline">Built by Jake Makking-Robinson for Sela's strategy &amp; ops role. A working draft, not a Sela product.</div>
+  </header>
+
+  <div class="time"><b>Under a second per candidate</b><span>against an estimated 20–30 minutes to read, score and reply by hand. It drafts; a person makes every decision. Nothing you paste leaves this page.</span></div>
+
+  <section aria-labelledby="h-inputs">
+    <h2 id="h-inputs">1 · Inputs</h2>
+    <div class="grid">
+      <div>
+        <label class="field" for="jd">Job description <span id="jdBadge" class="badge sample">sample posting</span></label>
+        <textarea id="jd" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <label class="field" for="cand">Candidate CV and application answers</label>
+        <div class="chips" id="chips"><span class="hint">Demo candidates, all synthetic:</span></div>
+        <textarea id="cand" spellcheck="false" placeholder="Paste a CV and any application answers as plain text."></textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="run">Screen candidate</button>
+      <button id="runAll">Compare all three demo candidates</button>
+      <span class="status" id="status" role="status" aria-live="polite"></span>
+    </div>
+    <div id="err" class="error" hidden></div>
+  </section>
+
+  <section id="compareSec" hidden aria-labelledby="h-compare">
+    <h2 id="h-compare">Demo range</h2>
+    <div class="card" style="padding:0">
+      <div class="tablebox">
+        <table class="compare"><thead><tr><th>Candidate</th><th>Mean</th><th>Suggestion</th><th>Weakest axis</th></tr></thead><tbody id="compare"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="rubricSec" hidden aria-labelledby="h-rubric">
+    <h2 id="h-rubric">2 · Rubric</h2>
+    <details id="rubricBox">
+      <summary id="rubricTitle">Rubric</summary>
+      <ul class="axislist" id="rubric"></ul>
+    </details>
+  </section>
+
+  <section id="screenSec" hidden aria-labelledby="h-screen">
+    <h2 id="h-screen">3 · Screen</h2>
+    <div class="card">
+      <div class="headline">
+        <div>
+          <h3 id="cName"></h3>
+          <p class="summary" id="cSummary"></p>
+        </div>
+        <div class="mean"><span id="cSuggest" class="badge"></span><span id="cMean"></span></div>
+      </div>
+      <div class="tablebox">
+        <table class="scores"><thead><tr><th>Axis</th><th>Score</th><th>Evidence, quoted from the application</th></tr></thead><tbody id="scores"></tbody></table>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="card">
+        <h2>Interview kit</h2>
+        <ol class="q" id="questions"></ol>
+      </div>
+      <div class="card">
+        <h2>Reply to the candidate</h2>
+        <div class="actions">
+          <div class="seg" role="group" aria-label="Decision">
+            <button id="pickAdvance">Advance</button><button id="pickDecline">Decline</button>
+          </div>
+          <span class="hint" id="decisionHint"></span>
+        </div>
+        <pre class="msg" id="msg"></pre>
+        <div class="actions">
+          <button id="copyMsg">Copy message</button>
+          <button class="primary" id="hire">Mark as hired → onboarding</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="onboardSec" hidden aria-labelledby="h-onboard">
+    <h2 id="h-onboard">4 · Onboarding</h2>
+    <div class="card">
+      <h2>First 30 days</h2>
+      <div class="weeks" id="weeks"></div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h2>Access checklist</h2>
+        <ul class="check" id="checklist"></ul>
+      </div>
+      <div class="card">
+        <h2>Welcome message to the team</h2>
+        <pre class="msg" id="welcome"></pre>
+        <div class="actions"><button id="copyWelcome">Copy message</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>First week</h2>
+      <div class="days" id="days"></div>
+    </div>
+  </section>
+
+  <footer>
+    <p><b>How it scores.</b> The three hiring-value axes and their 1/3/5 anchors are fixed. Must-haves are the requirement lines in the job description, minus nice-to-haves and anything the values already cover. A score rises with lines that show an action, a number and an outcome, and falls with buzzwords. Every quote is copied from the pasted text, never written. The suggestion is a fixed rule: any must-have at 2 or below suggests decline.</p>
+    <p><b>What this version is.</b> A transparent rules engine that runs in your browser: no model, no server, no stored data. The demo candidates and the sample posting are synthetic. A production version would swap the matching step for a language model and keep the same rubric, quoting and decision rule.</p>
+  </footer>
+</div>
+
+<script id="engine">
+// Screening engine. Pure functions, no network. Exposed as window.Screen (and module.exports for tests).
+(function (root) {
+  const BUZZ = /passionate|results[- ]driven|synerg\w*|leverag\w*|cutting[- ]edge|proven track record|dynamic team|go[- ]getter|strong communicator|team player|detail[- ]oriented|perfectionist|as assigned|responsible for|data enthusiast|drive insights|deliver value|great fit|think outside/gi;
+  const ACTION = /\b(built|designed|trained|led|caught|replaced|wrote|mentored|shipped|launched|owned?|ran|created|cut|reduced|increased|grew|automated|partnered|delivered|founded|analy[sz]ed|developed|implemented|onboarded|introduced|migrated|scaled|negotiated|hired|managed|audited|priced|built|set up|rebuilt|fixed|added)\b/i;
+  const METRIC = /\d+(?:[.,]\d+)*\s?(?:%|k\b|m\b|x\b|million|bn\b|calls|users|people|analysts|customers|hires|engineers|transcripts|weeks?|months?)|\b\d{1,3}(?:,\d{3})+\b|\b(?:two|three|four|five|six|seven|eight|nine|ten|dozen)\s+[a-z]+|\$\s?\d/i;
+  const OUTCOME = /\b(cut|reduc\w*|increas\w*|grew|saved|improv\w*|replac\w*|lift\w*|caught|prevent\w*|doubl\w*|tripl\w*|halv\w*|now (?:required|used|uses)|used by|adopted|fixed)\b|\d+(?:\.\d+)?\s?%/i;
+  const YEARS_RANGE = /\b((?:19|20)\d{2})\s*[–—-]\s*((?:19|20)\d{2}|present|now|current)\b/i;
+  const TEAM = /mentor\w*|coach\w*|onboarded|taught|trained (?:\w+ )?(?:new |junior )?(?:analysts|engineers|hires|people|staff|colleagues)|wrote (?:our|the|an?) [^.;]*(?:guide|playbook|docs?)|document\w*|partnered|with the [a-z ]+ team|cross[- ]functional|helped|unblock\w*|told the team|pair(?:ed)? with|code review|knowledge[- ]shar\w*|required reading/i;
+
+  // Requirement concepts. jd = how a job description phrases it; cv = what evidence of it looks like.
+  const CONCEPTS = [
+    { id: "experimentation", name: "Experiment design & statistics", jd: /a\/b|experiment|statistic|causal|hypothesis test/gi, cv: /a\/b|a\/a|experiment|statistic|sequential test|significan|novelty effect|causal|control group|holdout/i },
+    { id: "production_ml", name: "Production data science / ML", jd: /production|shipp?\w* (?:models?|analyses)|deploy\w*|machine learning|\bml\b/gi, cv: /production|deploy\w*|shipped|\bmodels?\b|classifier|forecast\w*|propensity/i },
+    { id: "python_sql", name: "Python & SQL", jd: /python|\bsql\b/gi, cv: /python|\bsql\b|bigquery|pandas|pytorch|spark|snowflake|\bdbt\b|scikit/i },
+    { id: "llm_eval", name: "LLM & conversational evaluation", jd: /\bllms?\b|language model|conversational|chatbot|voice agent/gi, cv: /\bllm|language model|summari[sz]er|chatbot|conversation|speech|voice|transcri|evaluation pipeline|\bevals?\b/i },
+    { id: "data_scale", name: "Large, messy data", jd: /large[- ]scale|messy|big data|millions/gi, cv: /million|\b\d+(?:\.\d+)?m\b|\d{1,3}(?:,\d{3})+|pipeline|warehouse|transcri/i },
+    { id: "recruiting", name: "Recruiting & hiring", jd: /recruit\w*|hiring|talent|sourcing|headcount/gi, cv: /recruit\w*|\bhired\b|hiring|interview\w*|sourc\w*|talent|headcount/i },
+    { id: "people_lead", name: "Team leadership", jd: /manag\w* (?:a )?team|lead\w* (?:a )?team|people manag\w*|direct reports/gi, cv: /managed|led (?:a )?team|direct reports|\bhired\b|mentor\w*/i },
+    { id: "ops", name: "Operations & automation", jd: /operations|process\w*|automat\w*|workflow|playbook/gi, cv: /process\w*|automat\w*|workflow|playbook|operations|replaced a manual/i },
+    { id: "finance", name: "Finance & modelling", jd: /financial model\w*|fp&a|forecast\w*|budget\w*|pricing/gi, cv: /\bmodels?\b|forecast\w*|budget\w*|pricing|fp&a|p&l/i },
+    { id: "engineering", name: "Software engineering", jd: /typescript|javascript|react|backend|frontend|\bapis?\b|software engineer\w*/gi, cv: /typescript|javascript|react|backend|frontend|\bapis?\b|node\.?js/i },
+    { id: "domain_lending", name: "Lending / financial services", jd: /mortgage|lending|loans?\b|fintech|financial services|insurance|banking/gi, cv: /mortgage|lend\w*|loans?\b|prepayment|fintech|bank\w*|insurance|credit|capital markets/i },
+    { id: "stakeholder", name: "Customer & stakeholder work", jd: /customers?|stakeholders?|clients?/gi, cv: /customers?|stakeholders?|clients?|partnered|with the [a-z ]+ team/i },
+    // These two map onto the fixed hiring values, so they never become separate must-haves.
+    { id: "communication", fixed: true, jd: /\bwrit\w*|communicat\w*|explain\w*|present\w*/gi },
+    { id: "team_player", fixed: true, jd: /collaborat\w*|team player|low[- ]ego/gi },
+  ];
+
+  const FIXED = [
+    { id: "intelligence", name: "Intelligence", question: "Do they solve hard, ambiguous problems and learn fast?",
+      anchors: { 1: "Duties listed, outcomes absent.", 3: "Real problems solved with clear outcomes, mostly within a defined scope.", 5: "Repeatedly took an ambiguous problem, chose the approach and shipped a measurable result." } },
+    { id: "communication", name: "Communication", question: "Is their writing clear, specific and easy to act on?",
+      anchors: { 1: "Vague or padded: buzzwords instead of specifics.", 3: "Clear and mostly specific, with some padding.", 5: "Precise and concrete: numbers, decisions and trade-offs stated plainly." } },
+    { id: "team_player", name: "Team player", question: "Do they make the people around them better?",
+      anchors: { 1: "No sign of anyone else in their work.", 3: "Worked well inside a team, some evidence of helping others.", 5: "Raised the bar for others: mentored, unblocked, documented, took on unglamorous work." } },
+  ];
+
+  const STOP = new Set("a an and or the of to in for with on at by from as is are be you your we our us this that it its will can who what when how into across about have has had their them they all any more most such than very well also just like".split(" "));
+  const stripBullet = (t) => t.replace(/^\s*(?:[-•*▪●–]|\d+[.)])\s+/, "").trim();
+  const isBullet = (t) => /^\s*(?:[-•*▪●–]|\d+[.)])\s+/.test(t);
+  const titleCase = (s) => s.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  const strength = (t) => Math.max(0, (ACTION.test(t) ? 1 : 0) + (METRIC.test(t) ? 1 : 0) + (OUTCOME.test(t) ? 1 : 0) - (new RegExp(BUZZ.source, "i").test(t) ? 1 : 0));
+  const countMatches = (re, t) => (t.match(new RegExp(re.source, "gi")) || []).length;
+
+  // Shorten a quote by cutting at a clause boundary, so it stays a verbatim prefix.
+  function shortQuote(t, max = 120) {
+    if (t.length <= max) return t;
+    const cut = t.slice(0, max);
+    const at = Math.max(cut.lastIndexOf(";"), cut.lastIndexOf(","), cut.lastIndexOf(" "));
+    return t.slice(0, at > 40 ? at : max).replace(/[;,\s]+$/, "") + "…";
+  }
+
+  // ---------- Job description ----------
+  function parseJD(text) {
+    const raw = text.split(/\r?\n/).map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim());
+    const title = raw[0] && raw[0].length < 80 ? stripBullet(raw[0]) : "this role";
+    let section = "";
+    const bullets = [];
+    for (const l of raw.slice(1)) {
+      const t = l.trim();
+      if (!isBullet(t) && t.length < 60 && !/[.!]$/.test(t)) { section = t; continue; }
+      if (isBullet(t)) bullets.push({ text: stripBullet(t), section });
+    }
+    const reqSection = /look|require|qualif|you have|you bring|about you|must|who you are|what we need|you'll need|skills/i;
+    const reqCue = /experience|years|fluent|strong|proficien|ability|track record|degree|comfortable|you (?:have|know|write)/i;
+    let pool = bullets.filter((b) => reqSection.test(b.section));
+    if (!pool.length) pool = bullets.filter((b) => reqCue.test(b.text));
+
+    const mustHaves = [], skipped = [];
+    for (const b of pool) {
+      const nice = /\b(?:a (?:strong )?plus|bonus|nice[- ]to[- ]have|preferred|ideally)\b/i.test(b.text);
+      const hits = CONCEPTS.map((c) => ({ c, n: countMatches(c.jd, b.text) })).filter((h) => h.n > 0).sort((a, z) => z.n - a.n);
+      const top = hits[0] && hits[0].c;
+      if (nice) { skipped.push({ text: b.text, why: "nice-to-have" }); continue; }
+      if (top && top.fixed) { skipped.push({ text: b.text, why: `covered by ${top.id === "communication" ? "Communication" : "Team player"}` }); continue; }
+      const yrs = (b.text.match(/(\d+)\s*\+?\s*(?:years|yrs)/i) || [])[1];
+      let axis;
+      if (top) {
+        axis = { id: top.id, name: top.name, cv: top.cv, concept: top.id };
+      } else {
+        const words = (b.text.toLowerCase().match(/[a-z][a-z&/+-]{3,}/g) || []).filter((w) => !STOP.has(w));
+        const keys = [...new Set(words)].slice(0, 6);
+        axis = { id: "req_" + mustHaves.length, name: titleCase(keys.slice(0, 3).join(" ")) || "Requirement", keys, concept: null };
+      }
+      if (mustHaves.some((m) => m.id === axis.id)) continue;
+      axis.years = yrs ? Number(yrs) : null;
+      if (axis.years) axis.name += ` (${axis.years}+ yrs)`;
+      axis.jd_quote = b.text;
+      axis.anchors = {
+        1: "No line in the application shows it.",
+        3: "Shown once, with some specifics.",
+        5: "Shown more than once, with numbers and outcomes.",
+      };
+      mustHaves.push(axis);
+      if (mustHaves.length === 4) break;
+    }
+    return { title, mustHaves, skipped };
+  }
+
+  // ---------- Candidate ----------
+  function parseCandidate(text) {
+    const lines = [];
+    let section = "top", name = "Candidate";
+    const headerRe = /^(experience|work experience|employment|work history|education|skills|summary|profile|about|projects?|application answers?|answers|cover letter|questions)\s*:?$/i;
+    const classify = (t) =>
+      /skill/i.test(t) ? "skills" : /summary|profile|about/i.test(t) ? "summary" : /application|answer|question|cover/i.test(t) ? "answers" :
+      /education/i.test(t) ? "education" : /project/i.test(t) ? "projects" : /experience|employment|work/i.test(t) ? "experience" : "other";
+    const raw = text.split(/\r?\n/);
+    let first = true;
+    for (const r of raw) {
+      const t = r.trim();
+      if (!t) continue;
+      if (first) {
+        first = false;
+        const n = t.replace(/\(.*?\)/g, "").trim();
+        if (/^[A-Z][A-Za-z'’.-]+(?:\s+[A-Z][A-Za-z'’.-]+){1,3}$/.test(n)) { name = n; continue; }
+      }
+      const isHeader = headerRe.test(t) || (t.length < 40 && t === t.toUpperCase() && /[A-Z]{3}/.test(t));
+      if (isHeader) { section = classify(t); continue; }
+      const clean = stripBullet(t);
+      if (YEARS_RANGE.test(clean) && !isBullet(t) && clean.length < 140) { lines.push({ text: clean, section, kind: "role" }); continue; }
+      if (section === "answers") {
+        const q = clean.indexOf("? ");
+        const body = q > -1 && q < 90 ? clean.slice(q + 2) : clean;
+        for (const s of body.split(/(?<=[.!?])\s+/)) if (s.trim()) lines.push({ text: s.trim(), section, kind: "answer" });
+        continue;
+      }
+      lines.push({ text: clean, section, kind: section === "skills" ? "skill" : "line" });
+    }
+    // Years of experience from role date ranges, overlaps merged.
+    const now = new Date().getFullYear();
+    const spans = lines.filter((l) => l.kind === "role").map((l) => {
+      const m = l.text.match(YEARS_RANGE);
+      return [Number(m[1]), /\d/.test(m[2]) ? Number(m[2]) : now];
+    }).sort((a, b) => a[0] - b[0]);
+    let years = 0, end = -Infinity;
+    for (const [s, e] of spans) { const from = Math.max(s, end); if (e > from) years += e - from; end = Math.max(end, e); }
+    for (const l of lines) l.strength = strength(l.text);
+    return { name, lines, years, roles: lines.filter((l) => l.kind === "role") };
+  }
+
+  const evidenceLines = (c) => c.lines.filter((l) => l.kind === "line" || l.kind === "answer");
+  const best = (arr, n = 2) => [...arr].sort((a, b) => b.strength - a.strength || a.text.length - b.text.length).slice(0, n);
+
+  // ---------- Scoring ----------
+  function scoreMustHave(axis, c) {
+    const pool = c.lines.filter((l) => l.kind !== "role");
+    const test = axis.cv
+      ? (t) => axis.cv.test(t)
+      : (t) => { const lt = t.toLowerCase(); const hits = axis.keys.filter((k) => lt.includes(k.slice(0, 5))).length; return hits >= Math.min(2, axis.keys.length); };
+    const matched = pool.filter((l) => test(l.text));
+    const real = matched.filter((l) => l.kind !== "skill" && l.section !== "summary");
+    let score, reason;
+    if (!matched.length) { score = 1; reason = "No line in the application mentions this."; }
+    else if (!real.length) { score = 2; reason = "Only listed as a skill or in the summary, with no work behind it."; }
+    else {
+      const top = Math.max(...real.map((l) => l.strength));
+      const solid = real.filter((l) => l.strength >= 2).length;
+      score = top >= 3 ? 4 : top === 2 ? 3 : 2;
+      if (solid >= 2) score += 1;
+      score = Math.min(5, score);
+      reason = `${real.length} line${real.length > 1 ? "s" : ""} show${real.length > 1 ? "" : "s"} it; the strongest ${top >= 2 ? "has" : "lacks"} a number or outcome.`;
+    }
+    if (axis.years && c.years < axis.years && score > 2) {
+      score = 2;
+      reason += ` Capped at 2: about ${c.years} year${c.years === 1 ? "" : "s"} of dated experience against ${axis.years}+ asked.`;
+    }
+    return { axis_id: axis.id, score, evidence: best(real.length ? real : matched), reasoning: reason };
+  }
+
+  function scoreIntelligence(c) {
+    const pool = evidenceLines(c);
+    const s3 = pool.filter((l) => l.strength >= 3).length, s2 = pool.filter((l) => l.strength === 2).length;
+    const score = s3 >= 3 ? 5 : s3 === 2 ? 4 : s3 === 1 || s2 >= 2 ? 3 : s2 === 1 ? 2 : 1;
+    const reason = s3 + s2
+      ? `${s3} line${s3 === 1 ? "" : "s"} show an action, a number and an outcome together; ${s2} more show two of the three.`
+      : "No line pairs an action with a measurable result.";
+    return { axis_id: "intelligence", score, evidence: best(pool.filter((l) => l.strength >= 1)), reasoning: reason };
+  }
+
+  function scoreCommunication(c, text) {
+    const exp = c.lines.filter((l) => l.kind === "line" && l.section !== "summary");
+    const ratio = exp.length ? exp.filter((l) => METRIC.test(l.text)).length / exp.length : 0;
+    const buzzLines = c.lines.filter((l) => new RegExp(BUZZ.source, "i").test(l.text));
+    const buzz = countMatches(BUZZ, text);
+    const answers = c.lines.filter((l) => l.kind === "answer");
+    const concrete = answers.filter((l) => !new RegExp(BUZZ.source, "i").test(l.text) && (METRIC.test(l.text) || ACTION.test(l.text) || /\bI\s+(?:\w+ed|ran|wrote|built|told|fixed|now)\b/.test(l.text)));
+    let score = 3;
+    if (ratio >= 0.5) score++;
+    if (ratio < 0.2) score--;
+    if (concrete.length >= 2) score++;
+    if (answers.length && !concrete.length) score--;
+    if (buzz >= 2) score--;
+    if (buzz >= 4) score--;
+    score = Math.max(1, Math.min(5, score));
+    const parts = [`${Math.round(ratio * 100)}% of work lines include a number`];
+    if (answers.length) parts.push(`${concrete.length} of ${answers.length} answer sentences are concrete`);
+    parts.push(`${buzz} buzzword phrase${buzz === 1 ? "" : "s"}`);
+    const evidence = score >= 3
+      ? [...best(concrete, 1), ...best(exp.filter((l) => METRIC.test(l.text)), 1)]
+      : buzzLines.slice(0, 2);
+    return { axis_id: "communication", score, evidence, reasoning: parts.join("; ") + ".", evidenceIsNegative: score < 3 && evidence.length > 0 };
+  }
+
+  function scoreTeam(c) {
+    const pool = c.lines.filter((l) => l.kind !== "role");
+    const real = pool.filter((l) => l.kind !== "skill" && l.section !== "summary" && TEAM.test(l.text));
+    const claimed = pool.filter((l) => (l.kind === "skill" || l.section === "summary") && /team|collaborat|leader/i.test(l.text));
+    let score;
+    if (real.length >= 2 && real.some((l) => l.strength >= 2)) score = 5;
+    else if (real.length >= 2) score = 4;
+    else if (real.length === 1) score = 3;
+    else if (claimed.length) score = 2;
+    else score = 1;
+    const reason = real.length
+      ? `${real.length} line${real.length > 1 ? "s" : ""} show them helping, teaching or working with others.`
+      : claimed.length ? "Claimed in a skills list or summary, with no example." : "No sign of anyone else in their work.";
+    return { axis_id: "team_player", score, evidence: best(real.length ? real : claimed), reasoning: reason };
+  }
+
+  function suggest(scores, mustIds) {
+    const vals = scores.map((s) => s.score);
+    const mean = vals.reduce((a, b) => a + b, 0) / (vals.length || 1);
+    const missedMust = scores.some((s) => mustIds.includes(s.axis_id) && s.score <= 2);
+    let decision = "human_review";
+    if (missedMust || mean < 2.5) decision = "decline";
+    else if (mean >= 3.75 && vals.every((v) => v >= 3)) decision = "advance";
+    return { decision, mean: Math.round(mean * 100) / 100 };
+  }
+
+  // ---------- Interview questions ----------
+  const BANK = {
+    intelligence: [
+      ["Tell me about a problem nobody had defined for you. How did you decide what to work on first?", "They framed the problem themselves and can say why they chose that approach."],
+      ["What's something you learned from scratch in the last year? How did you get good at it quickly?", "A concrete method and a sign of progress, not just enthusiasm."],
+      ["Walk me through a decision where the data pointed one way and your judgement another.", "A clear trade-off and what they learned from the outcome."],
+    ],
+    communication: [
+      ["Explain your most technical piece of work as you would to a customer with no background in it.", "Plain words, one clear point, and a check that it landed."],
+      ["Tell me about a written update or document that changed someone's decision.", "Who read it, what changed, and why the writing worked."],
+      ["What result did you get wrong, and how did you tell people?", "They raised it quickly and specifically, without defensiveness."],
+    ],
+    team_player: [
+      ["Tell me about a time you helped a colleague ship something that wasn't your project.", "Specific help, given without being asked, and credit to the other person."],
+      ["What's the least glamorous work you've taken on because the team needed it?", "A real example and no resentment about it."],
+      ["Describe a disagreement with a teammate. How was it resolved?", "They engaged with the other view and kept the relationship."],
+    ],
+    experimentation: [
+      ["An agent variant resolves 2% more calls than the control after one week. What do you check before you believe it?", "Sample size, novelty effects, guardrail metrics and an A/A check."],
+      ["Design a test of an AI agent against human loan officers. What's the unit, the main metric and the guardrail?", "Randomisation unit, one primary metric, and a compliance or borrower-outcome guardrail."],
+      ["Tell me about an experiment whose result you didn't trust. How did you find out?", "A specific failure mode and the fix they put in place."],
+    ],
+    production_ml: [
+      ["Walk me through a model you shipped. What broke after launch and how did you find out?", "Monitoring, a real incident, and what they changed."],
+      ["How do you decide a model is good enough to ship?", "A metric tied to the product, a baseline, and an explicit threshold."],
+      ["What's a model you decided not to build, and why?", "Judgement about cost against value."],
+    ],
+    python_sql: [
+      ["Talk me through the last messy dataset you cleaned. What surprised you?", "Specific data issues and checks they now run by default."],
+      ["How would you find calls where the transcript and the logged outcome disagree?", "A concrete query or join strategy and how they'd validate it."],
+      ["How do you keep analysis code reproducible?", "Version control, tests or checks, and shared definitions."],
+    ],
+    llm_eval: [
+      ["How would you score whether an AI agent handled a refinance call well?", "A rubric that covers accuracy, compliance and borrower outcome."],
+      ["How do you check that an automated grader agrees with human reviewers?", "A labelled sample and an agreement measure."],
+      ["Tell me about a time an evaluation metric misled you.", "What the metric missed and how they changed it."],
+    ],
+    data_scale: [
+      ["What's the biggest dataset you've worked with, and what broke at that scale?", "Specific bottlenecks and what they did about them."],
+      ["How would you sample millions of call transcripts to answer a product question cheaply?", "A sampling plan and how they'd size it."],
+      ["Tell me about a pipeline you built. How did you know it was correct?", "Checks, alerts and a reconciliation step."],
+    ],
+    recruiting: [
+      ["Walk me through a hiring process you ran. Where did good candidates drop out?", "Funnel numbers and the change they made."],
+      ["How would you hire four people a month without lowering the bar?", "A sourcing plan, a consistent rubric and a capacity check."],
+      ["Tell me about a hire that didn't work out. What would you screen for now?", "Honesty and a concrete change to the process."],
+    ],
+  };
+  function genericBank(name) {
+    const n = name.replace(/\s*\(\d+\+ yrs\)/, "").toLowerCase();
+    return [
+      [`The role needs ${n}. Tell me about the hardest time you've had to do this. What was the result?`, "A specific situation, their own actions and a measurable result."],
+      [`If you started on Monday, what would you do in your first two weeks on ${n}?`, "A realistic plan that starts by listening and ends with a first deliverable."],
+      [`What's a mistake you've made with ${n}, and what did you change afterwards?`, "Ownership and a lasting change in how they work."],
+    ];
+  }
+
+  function interviewKit(axes, scores) {
+    const byScore = [...scores].sort((a, b) => a.score - b.score || (axes.find((x) => x.id === b.axis_id).kind === "must_have") - (axes.find((x) => x.id === a.axis_id).kind === "must_have"));
+    const weakest = byScore[0], second = byScore[1], strongest = byScore[byScore.length - 1];
+    const bankFor = (id) => BANK[id] || BANK[axes.find((a) => a.id === id).concept] || genericBank(axes.find((a) => a.id === id).name);
+    const out = [];
+    const add = (axis_id, [question, listen_for]) => { if (!out.some((q) => q.question === question)) out.push({ axis_id, question, listen_for }); };
+    const fromEvidence = (s) => s.evidence[0] && !s.evidenceIsNegative && s.evidence[0].kind !== "skill" && s.evidence[0].section !== "summary"
+      ? [`You wrote: "${shortQuote(s.evidence[0].text, 100)}" What was your part, what did you try first, and how did you know it worked?`, "Their own decisions rather than the team's, and a clear measure of success."]
+      : null;
+    const wb = bankFor(weakest.axis_id);
+    const wq = fromEvidence(weakest);
+    if (wq) add(weakest.axis_id, wq);
+    for (const q of wb) if (out.length < 3) add(weakest.axis_id, q);
+    add(second.axis_id, bankFor(second.axis_id)[0]);
+    const sq = fromEvidence(strongest);
+    add(strongest.axis_id, sq || bankFor(strongest.axis_id)[0]);
+    for (const q of bankFor(second.axis_id)) if (out.length < 5) add(second.axis_id, q);
+    return { questions: out.slice(0, 5), weakest: weakest.axis_id, strongest: strongest.axis_id };
+  }
+
+  // ---------- Messages ----------
+  function messages(c, role, scores, axes) {
+    const first = c.name === "Candidate" ? "there" : c.name.split(/\s+/)[0];
+    const positive = [...scores].filter((s) => s.evidence.length && !s.evidenceIsNegative && s.evidence[0].strength >= 1 && s.evidence[0].kind !== "skill").sort((a, b) => b.score - a.score || b.evidence[0].strength - a.evidence[0].strength);
+    let strength;
+    if (positive.length) {
+      const q = shortQuote(positive[0].evidence[0].text, 110);
+      strength = { line: `One thing that stood out was this line from your application: "${q}"`, label: q };
+    } else {
+      const edu = c.lines.find((l) => l.section === "education");
+      strength = edu
+        ? { line: `We noticed you've invested in your skills through ${edu.text.replace(/,?\s*(?:19|20)\d{2}.*$/, "")}, and that's worth continuing.`, label: edu.text }
+        : { line: "Thank you for the care you put into your application.", label: "the application itself" };
+    }
+    return {
+      advance: {
+        subject: `${role}: next step`,
+        body: `Hi ${first},\n\nThanks for applying for the ${role} role. ${strength.line}\n\nWe'd like to set up a 30-minute call to hear more about your work. Could you send two or three times that suit you next week?\n\nBest,\n[Your name]`,
+      },
+      decline: {
+        subject: `Your application for ${role}`,
+        body: `Hi ${first},\n\nThank you for applying for the ${role} role and for the time you put into it. We've decided not to move forward this time.\n\n${strength.line} We'd be glad to hear from you again as the team grows.\n\nBest,\n[Your name]`,
+        named_strength: strength.label,
+      },
+    };
+  }
+
+  // ---------- Onboarding ----------
+  const WEEK = {
+    experimentation: ["Own one live A/B test", ["Review the design of the current agent-against-human test", "Write up one result with confidence intervals for the team"]],
+    production_ml: ["Ship a first model change", ["Run the current model and its evaluation end to end", "Ship one small, reviewed improvement"]],
+    python_sql: ["Get fluent in the data", ["Rebuild one core metric from raw tables", "Document three data quirks found on the way"]],
+    llm_eval: ["Improve the call scoring", ["Hand-score 50 calls and compare with the automated scores", "Propose one change to the scoring rubric"]],
+    data_scale: ["Tame one data pipeline", ["Map the call-transcript pipeline end to end", "Add one data-quality check that alerts on failure"]],
+    recruiting: ["Run one hiring loop", ["Map the current funnel with real numbers", "Run one role's screen end to end with the rubric"]],
+    people_lead: ["Meet the team properly", ["Hold a 1:1 with every report", "Write down the team's top three blockers"]],
+    ops: ["Fix one process", ["Map one manual process step by step", "Automate or remove one step, and measure the time saved"]],
+    finance: ["Own one model", ["Rebuild one existing financial model and reconcile it", "Present one finding to the leadership team"]],
+    engineering: ["Ship to production", ["Set up the dev environment and ship a small fix", "Ship one reviewed feature"]],
+    domain_lending: ["Learn the borrower journey", ["Listen to calls covering refinance, application and servicing", "Write a one-page glossary of lending terms for the team"]],
+    stakeholder: ["Meet the customers", ["Join three customer calls", "Write up what customers ask for most"]],
+  };
+
+  function onboarding(c, role, axes, scores) {
+    const must = axes.filter((a) => a.kind === "must_have");
+    const sc = new Map(scores.map((s) => [s.axis_id, s.score]));
+    const order = [...must].sort((a, b) => sc.get(b.id) - sc.get(a.id));
+    const weeks = [{ week: 1, focus: "Ramp up", tag: "Ramp-up", outcomes: ["Shadow ten live agent calls and five human calls", "Meet every team lead for 30 minutes", "Write a one-page note on what you've learned by Friday"] }];
+    for (let i = 0; i < 3; i++) {
+      const a = order[i % Math.max(order.length, 1)];
+      if (!a) { weeks.push({ week: i + 2, focus: "Agree the next problem", tag: "Ramp-up", outcomes: ["Agree with the hiring manager what good looks like by day 60"] }); continue; }
+      const [focus, outcomes] = WEEK[a.concept] || [`Deliver on ${a.name.replace(/\s*\(\d+\+ yrs\)/, "").toLowerCase()}`, ["Agree what good looks like with the hiring manager", "Deliver a first piece of work for review"]];
+      const extra = sc.get(a.id) <= 2 ? ["Pair weekly with a teammate who is strong here"] : [];
+      weeks.push({ week: i + 2, focus: order.length < 3 && i >= order.length ? focus + ", continued" : focus, tag: a.name, outcomes: [...outcomes, ...extra] });
+    }
+    const technical = must.some((a) => ["production_ml", "python_sql", "engineering", "llm_eval", "data_scale"].includes(a.concept));
+    const data = must.some((a) => ["python_sql", "data_scale", "production_ml"].includes(a.concept));
+    const checklist = [
+      ["Laptop, Google Workspace account and SF office access", "Ops", "Before day 1"],
+      ["Slack, added to team channels", "Ops", "Before day 1"],
+      ["Weekly 1:1 with the hiring manager in the calendar", "Hiring manager", "Before day 1"],
+      technical ? ["GitHub organisation access", "Engineering lead", "Day 1"] : ["Shared drive and team docs", "Ops", "Day 1"],
+      ["Borrower-data and compliance training", "Compliance", "Day 1"],
+      ["Call recordings, after compliance training", "Hiring manager", "Day 2"],
+      ["Agent evaluation system", "Hiring manager", "Day 2"],
+    ];
+    if (data) checklist.push(["Read access to the data warehouse", "Engineering lead", "Day 2"]);
+    const roleLine = c.roles[0] ? c.roles[0].text.replace(YEARS_RANGE, "").replace(/\(.*?\)/g, "").replace(/[,\s–—-]+$/, "").trim() : "";
+    const [jt, co] = roleLine.split(/\s*,\s*/);
+    const first = c.name === "Candidate" ? "our new hire" : c.name.split(/\s+/)[0];
+    const fact = [...scores].filter((s) => s.evidence.length && !s.evidenceIsNegative).sort((a, b) => b.score - a.score)[0];
+    const welcome = [
+      `Please welcome ${c.name === "Candidate" ? "our new hire" : c.name}, who joins on [start date] as our ${role}.`,
+      jt && co ? `Before joining, ${first} was ${jt} at ${co}.` : "",
+      fact ? `Ask ${first} about this: "${shortQuote(fact.evidence[0].text, 110)}"` : "",
+      `${first === "our new hire" ? "They'll" : first + " will"} be in the office Monday, Tuesday, Thursday and Friday. Come and say hello.`,
+    ].filter(Boolean).join(" ");
+    return {
+      weeks,
+      checklist: checklist.map(([item, owner, due]) => ({ item, owner, due })),
+      firstWeek: [
+        { day: "Monday", items: ["Welcome, laptop and accounts", "1:1 with the hiring manager: goals for 30 days", "Team lunch"] },
+        { day: "Tuesday", items: ["Product walkthrough", "Shadow live agent calls", "Read the evaluation docs"] },
+        { day: "Wednesday (remote)", items: ["Compliance training", "Set up tools and data access", "Write a list of open questions"] },
+        { day: "Thursday", items: ["Meet the customer-facing team", "Walkthrough of the role's main tools", `Pair session on week 2: ${weeks[1].focus.toLowerCase()}`] },
+        { day: "Friday", items: ["Share the one-page note on what you've learned", "Week review with the hiring manager"] },
+      ],
+      welcome,
+    };
+  }
+
+  // ---------- Public API ----------
+  function buildRubric(jdText) {
+    const jd = parseJD(jdText);
+    return {
+      role_title: jd.title,
+      skipped: jd.skipped,
+      axes: [...FIXED.map((a) => ({ ...a, kind: "fixed" })), ...jd.mustHaves.map((m) => ({ ...m, kind: "must_have" }))],
+    };
+  }
+
+  function screen(rubric, candText) {
+    const c = parseCandidate(candText);
+    const scores = rubric.axes.map((a) =>
+      a.id === "intelligence" ? scoreIntelligence(c) :
+      a.id === "communication" ? scoreCommunication(c, candText) :
+      a.id === "team_player" ? scoreTeam(c) : scoreMustHave(a, c));
+    const mustIds = rubric.axes.filter((a) => a.kind === "must_have").map((a) => a.id);
+    const kit = interviewKit(rubric.axes, scores);
+    const nameOf = (id) => rubric.axes.find((a) => a.id === id).name;
+    const sOf = (id) => scores.find((s) => s.axis_id === id).score;
+    const flags = [];
+    for (const s of scores) if (/Capped/.test(s.reasoning)) flags.push("has fewer years than the posting asks");
+    if (countMatches(BUZZ, candText) >= 3) flags.push("leans on buzzwords");
+    const summary = `Strongest on ${nameOf(kit.strongest)} (${sOf(kit.strongest)}/5), weakest on ${nameOf(kit.weakest)} (${sOf(kit.weakest)}/5).` +
+      (flags.length ? ` The application ${flags.join(" and ")}.` : ` About ${c.years} year${c.years === 1 ? "" : "s"} of dated experience.`);
+    return {
+      candidate: c,
+      candidate_name: c.name,
+      scores,
+      summary,
+      weakest_axis_id: kit.weakest,
+      strongest_axis_id: kit.strongest,
+      interview_questions: kit.questions,
+      messages: messages(c, rubric.role_title, scores, rubric.axes),
+      suggestion: suggest(scores, mustIds),
+    };
+  }
+
+  const api = { buildRubric, screen, onboarding, parseJD, parseCandidate, suggest, shortQuote, strength };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  root.Screen = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+
+<script id="demo">
+// Demo inputs, all synthetic. SAMPLE_JD is a stand-in for Sela's Founding Data Scientist posting:
+// swap in the live text from trysela.com/careers before sending the link.
+window.DEMO = {
+  jdIsSample: true,
+  jd: `Founding Data Scientist
+
+We build AI voice agents that handle borrower calls for mortgage lenders: refinance outreach, application follow-up and servicing questions. Our agents already run alongside human teams at some of the largest independent mortgage banks in the US, and every agent change is A/B tested against human performance.
+
+What you'll do
+- Own how we measure agent quality: design the evaluation system that scores calls for accuracy, compliance and borrower outcomes.
+- Design and analyse A/B tests comparing agent variants against each other and against human loan officers.
+- Build the data pipelines and models that turn millions of call transcripts into product decisions.
+- Work directly with engineering and customers to decide what to build next.
+
+What we're looking for
+- 3+ years of hands-on data science or ML in production, shipping models or analyses that changed a product.
+- Strong experimental design and statistics: you know when an A/B test result is real.
+- Fluent in Python and SQL, comfortable working with messy, large-scale text or audio data.
+- Experience evaluating LLMs or conversational systems is a strong plus.
+- You write clearly and can explain a result to a customer as well as to an engineer.
+
+San Francisco, in office 4 days a week (Wednesdays remote).`,
+  candidates: [
+    { id: "strong", label: "Strong", text: `Maya Chen (synthetic candidate)
+
+EXPERIENCE
+Senior Data Scientist, Lumen Voice (contact-centre speech analytics), 2022–present
+- Built the call-quality evaluation pipeline used to grade 40,000 calls a week; replaced a manual QA sample of 2% of calls.
+- Designed the A/B testing framework for our LLM-based call summariser; caught a novelty effect that would have shipped a variant that lost 6% accuracy after week two.
+- Trained an intent classifier on 3M transcribed calls (Python, PyTorch, BigQuery); cut misrouted calls by 18%.
+- Mentored two junior analysts; wrote our internal guide to sequential testing, now required reading for new hires.
+
+Data Scientist, Northwind Lending, 2020–2022
+- Built the prepayment model used by the capital markets team to price refinance offers.
+- Partnered with compliance to audit model inputs for fair-lending risk.
+
+EDUCATION
+MS Statistics, University of Washington, 2020
+
+APPLICATION ANSWERS
+Why this role? I've spent four years making voice systems measurable, and two years before that inside a lender. Your problem, proving an agent is as good as a loan officer, is the exact intersection.
+
+Tell us about a result you got wrong. Early on I reported a 9% lift in call resolution that turned out to be a logging change. I now run an A/A test before every launch, and I told the team about the mistake the same day.` },
+    { id: "borderline", label: "Borderline", text: `Jordan Okafor (synthetic candidate)
+
+EXPERIENCE
+Analytics Lead, Brightpath Insurance, 2021–present
+- Own the weekly claims dashboard (SQL, Looker) used by 30 people across operations.
+- Built a renewal-propensity model in Python that the retention team now uses to prioritise outreach calls.
+- Ran pricing experiments on the renewal email flow with the marketing team; one lifted renewals.
+- Onboarded and trained four new analysts on our SQL style guide.
+
+Business Analyst, Brightpath Insurance, 2019–2021
+- Built Excel models for quarterly planning.
+
+PROJECTS
+- Kaggle: sentiment classifier on customer reviews (top 30%), Python and scikit-learn.
+
+EDUCATION
+BA Economics, UC Davis, 2019
+
+APPLICATION ANSWERS
+Why this role? I want to move from reporting into building models, and voice AI for lending looks like a big opportunity where I can learn fast.
+
+Tell us about a result you got wrong. A dashboard double-counted claims for a month because of a join. I fixed the query and added a row-count check.` },
+    { id: "weak", label: "Weak", text: `Sam Patel (synthetic candidate)
+
+SUMMARY
+Passionate, results-driven data enthusiast and strong communicator with a proven track record of leveraging cutting-edge AI to drive synergies and deliver value.
+
+EXPERIENCE
+Data Science Intern, Various Startups, 2023–2024
+- Leveraged machine learning to drive insights.
+- Worked on AI projects using ChatGPT.
+- Responsible for data tasks as assigned.
+
+EDUCATION
+Data Science Bootcamp, 2023
+
+SKILLS
+Python, AI, ML, Deep Learning, Big Data, Leadership, Teamwork
+
+APPLICATION ANSWERS
+Why this role? I am passionate about AI and believe I would be a great fit for your dynamic team.
+
+Tell us about a result you got wrong. I am a perfectionist so I always double check my work.` },
+  ],
+};
+</script>
+
+<script>
+(function () {
+  const S = window.Screen, D = window.DEMO;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const LABEL = { advance: "Suggest: advance", human_review: "Suggest: human review", decline: "Suggest: decline" };
+  const state = { rubric: null, screen: null, decision: null };
+
+  $("jd").value = D.jd;
+  $("jdBadge").hidden = !D.jdIsSample;
+  $("jd").addEventListener("input", () => { $("jdBadge").hidden = true; });
+
+  const markChip = (id) => document.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.id === id));
+  for (const c of D.candidates) {
+    const b = document.createElement("button");
+    b.className = "chip"; b.dataset.id = c.id; b.textContent = c.label;
+    b.addEventListener("click", () => { $("cand").value = c.text; markChip(c.id); run(); });
+    $("chips").appendChild(b);
+  }
+  $("cand").addEventListener("input", () => markChip(null));
+
+  function showError(msg) { $("err").hidden = !msg; $("err").textContent = msg || ""; }
+
+  function rubricFor(jd) {
+    const r = S.buildRubric(jd);
+    if (!r.axes.some((a) => a.kind === "must_have")) throw new Error("No requirement lines found in the job description. Put each requirement on its own line starting with a dash.");
+    return r;
+  }
+
+  function renderRubric(r) {
+    const must = r.axes.filter((a) => a.kind === "must_have").length;
+    $("rubricTitle").textContent = `Rubric for ${r.role_title}: 3 hiring values + ${must} must-have${must === 1 ? "" : "s"} from the posting`;
+    $("rubric").innerHTML = r.axes.map((a) => `
+      <li><span class="kind">${a.kind === "fixed" ? "Sela hiring value · fixed" : "Must-have · from the posting"}</span>
+      <b>${esc(a.name)}</b>${a.question ? `<span class="reason">${esc(a.question)}</span>` : ""}
+      ${a.jd_quote ? `<blockquote>“${esc(a.jd_quote)}”</blockquote>` : ""}
+      <span class="reason">1: ${esc(a.anchors[1])} · 3: ${esc(a.anchors[3])} · 5: ${esc(a.anchors[5])}</span></li>`).join("") +
+      (r.skipped.length ? `<li><span class="kind">Left out of scoring</span>${r.skipped.map((s) => `<span class="reason">“${esc(s.text)}” (${esc(s.why)})</span>`).join("")}</li>` : "");
+    $("rubricSec").hidden = false;
+  }
+
+  function showScreen(s) {
+    state.screen = s;
+    const axes = new Map(state.rubric.axes.map((a) => [a.id, a]));
+    $("cName").textContent = s.candidate_name;
+    $("cSummary").textContent = s.summary;
+    $("cSuggest").className = `badge ${s.suggestion.decision}`;
+    $("cSuggest").textContent = LABEL[s.suggestion.decision];
+    $("cMean").textContent = `Mean ${s.suggestion.mean.toFixed(2)} / 5`;
+    $("scores").innerHTML = s.scores.map((sc) => {
+      const a = axes.get(sc.axis_id);
+      const dots = [1, 2, 3, 4, 5].map((i) => `<span class="dot${i <= sc.score ? " on" : ""}"></span>`).join("");
+      const ev = sc.evidence.length
+        ? sc.evidence.map((e) => `<blockquote class="${sc.evidenceIsNegative ? "none" : ""}">“${esc(S.shortQuote(e.text, 180))}”</blockquote>`).join("")
+        : `<blockquote class="none">No supporting line in the application.</blockquote>`;
+      return `<tr><td class="axis">${esc(a.name)}<small>${a.kind === "must_have" ? "must-have" : "hiring value"}</small></td>
+        <td class="score"><span class="dots" aria-hidden="true">${dots}</span><span class="num">${sc.score}/5</span></td>
+        <td>${ev}<div class="reason">${esc(sc.reasoning)}</div></td></tr>`;
+    }).join("");
+    $("questions").innerHTML = s.interview_questions.map((q) =>
+      `<li>${esc(q.question)}<span class="listen">${esc(axes.get(q.axis_id).name)} · listen for: ${esc(q.listen_for)}</span></li>`).join("");
+    pick(s.suggestion.decision === "decline" ? "decline" : "advance", s.suggestion.decision === "human_review");
+    $("screenSec").hidden = false;
+    $("onboardSec").hidden = true;
+  }
+
+  function pick(d, undecided = false) {
+    state.decision = d;
+    $("pickAdvance").classList.toggle("on", d === "advance");
+    $("pickDecline").classList.toggle("on", d === "decline");
+    const m = state.screen.messages[d];
+    $("msg").textContent = `Subject: ${m.subject}\n\n${m.body}`;
+    $("decisionHint").textContent = undecided ? "Borderline: your call. Both drafts are ready." : "";
+    $("hire").hidden = d !== "advance";
+  }
+  $("pickAdvance").addEventListener("click", () => pick("advance"));
+  $("pickDecline").addEventListener("click", () => pick("decline"));
+
+  function run() {
+    showError(null);
+    const jd = $("jd").value.trim(), cand = $("cand").value.trim();
+    if (!jd || !cand) return showError("Paste a job description and a candidate first.");
+    try {
+      const t = performance.now();
+      state.rubric = rubricFor(jd);
+      renderRubric(state.rubric);
+      showScreen(S.screen(state.rubric, cand));
+      $("status").textContent = `Screened in ${Math.max(1, Math.round(performance.now() - t))} ms.`;
+    } catch (e) { showError(e.message); }
+  }
+  $("run").addEventListener("click", run);
+
+  function compareAll(scroll = true) {
+    showError(null);
+    try {
+      state.rubric = rubricFor($("jd").value.trim());
+      renderRubric(state.rubric);
+      const axes = new Map(state.rubric.axes.map((a) => [a.id, a]));
+      const rows = D.candidates.map((c) => [c, S.screen(state.rubric, c.text)]);
+      $("compare").innerHTML = "";
+      for (const [c, s] of rows) {
+        const tr = document.createElement("tr");
+        tr.className = "pick"; tr.tabIndex = 0;
+        tr.innerHTML = `<td><b>${esc(s.candidate_name)}</b> <span class="hint">${esc(c.label.toLowerCase())}, synthetic</span></td><td>${s.suggestion.mean.toFixed(2)}</td><td><span class="badge ${s.suggestion.decision}">${LABEL[s.suggestion.decision]}</span></td><td>${esc(axes.get(s.weakest_axis_id).name)}</td>`;
+        const open = () => { $("cand").value = c.text; markChip(c.id); showScreen(s); $("screenSec").scrollIntoView({ behavior: "smooth", block: "start" }); };
+        tr.addEventListener("click", open);
+        tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+        $("compare").appendChild(tr);
+      }
+      $("compareSec").hidden = false;
+      const cur = rows.find(([c]) => c.text === $("cand").value) || rows[0];
+      markChip(cur[0].id); $("cand").value = cur[0].text;
+      showScreen(cur[1]);
+      $("status").textContent = "Three candidates screened. Click a row to open one.";
+      if (scroll) $("compareSec").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) { showError(e.message); }
+  }
+  $("runAll").addEventListener("click", () => compareAll(true));
+
+  async function copy(id, btn) {
+    const text = $(id).textContent;
+    try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; }
+    catch { const r = document.createRange(); r.selectNodeContents($(id)); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); btn.textContent = "Selected: press Ctrl/Cmd+C"; }
+    setTimeout(() => (btn.textContent = "Copy message"), 1600);
+  }
+  $("copyMsg").addEventListener("click", (e) => copy("msg", e.currentTarget));
+  $("copyWelcome").addEventListener("click", (e) => copy("welcome", e.currentTarget));
+
+  $("hire").addEventListener("click", () => {
+    const s = state.screen;
+    const o = S.onboarding(s.candidate, state.rubric.role_title, state.rubric.axes, s.scores);
+    $("weeks").innerHTML = o.weeks.map((w) => `<div class="week"><b>Week ${w.week}: ${esc(w.focus)}</b><span class="tag">${esc(w.tag)}</span>
+      <ul>${w.outcomes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");
+    $("checklist").innerHTML = o.checklist.map((c, i) =>
+      `<li><input type="checkbox" id="ck${i}"><label for="ck${i}">${esc(c.item)}</label><small>${esc(c.owner)} · ${esc(c.due)}</small></li>`).join("");
+    $("days").innerHTML = o.firstWeek.map((d) => `<div><b>${esc(d.day)}</b><ul>${d.items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");
+    $("welcome").textContent = o.welcome;
+    $("onboardSec").hidden = false;
+    $("onboardSec").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  // Open in a working state: the demo range, with the strong candidate on screen.
+  $("cand").value = D.candidates[0].text;
+  compareAll(false);
+  $("status").textContent = "Showing the three demo candidates. Paste your own to screen them.";
+})();
+</script>
+</body>
+</html>

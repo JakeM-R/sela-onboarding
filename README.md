@@ -1,31 +1,34 @@
-# GPU Unit Economics
+# Candidate Screening Desk
 
-What does one GPU earn under different supply choices and utilisation, and which supply choice should come next? A decision tool for a GPU cloud that is scaling capacity. It compares **buy**, **lease** and **rent-in** per physical GPU-hour, with Thunder Compute's list prices as the default sell price.
+Takes one candidate from application to day one. Built as proof of work for Sela's first strategy & ops hire, where the year-one job is tripling headcount and automating most of recruiting.
 
-**Live:** https://jakem-r.github.io/thunder-gpu-radar/
+Built by Jake Makking-Robinson. A working draft, not a Sela product. All demo data is synthetic.
 
-Built by Jake Makking-Robinson. It's a template for real numbers. Every default is public, sourced and dated, and every input is editable. It draws no conclusion about any company's actual margins.
+**One static page. No API, no server, no keys.** Everything runs in the browser, and nothing pasted into it leaves the page.
 
-## What it shows
+## What it does
 
-- **Three cards**, one per supply option: median margin per GPU-hour and per GPU-month, an 80% band from a Monte Carlo over utilisation, realised price and rent-in price, the break-even utilisation, the chance of a loss, and the share of draws in which the option earns the most.
-- **Margin against utilisation** for all three options, with break-even points and crossovers marked (e.g. "Rent-in beats Buy below X% utilisation").
-- **Pooling table:** break-even utilisation at 1.0× to 3.0× pooling. With virtualisation, one physical GPU can carry more than one billed GPU-hour, so pooling is the main driver.
-- **Assumptions panel:** every default with its basis (live, sourced or estimate), source and date. The cost inputs are edited in place.
+1. **Input:** a job description plus one candidate's CV and application answers, pasted as text.
+2. **Rubric:** Sela's three hiring values (intelligence, communication, team player, from their careers page) are fixed axes with 1/3/5 anchors. Must-haves come from the requirement lines in the job description. Nice-to-haves, and lines the values already cover (such as "you write clearly"), are left out and listed as such.
+3. **Screen:** scores 1–5 on every axis. Every score quotes the application lines it rests on, copied verbatim. A line scores higher when it shows an action, a number and an outcome, and lower when it leans on buzzwords. Years of experience are read from date ranges and cap a must-have that asks for more.
+4. **Suggestion:** a fixed rule on the scores. Any must-have at 2 or below suggests decline, a mean of 3.75+ with nothing below 3 suggests advance, and everything else goes to a person.
+5. **Interview kit:** five questions, at least two aimed at the weakest axis, some built from the candidate's own lines.
+6. **Reply:** drafts both an advance and a decline. The decline names one real strength from the application. The reviewer picks.
+7. **Onboarding, on "hire":** a 30-day plan tied to the must-haves, an access checklist (Slack, GitHub, the eval system, and call recordings after compliance training), a first week with Wednesday remote, and a welcome message to the team.
 
-## Live inputs
+It opens with three synthetic candidates (strong, borderline, weak) already compared, so the whole range shows on first load.
 
-`.github/workflows/snapshot.yml` runs `fetch.py` every 6 hours (standard library only) and redeploys GitHub Pages.
+## Files
 
-- **Rent-in:** Vast.ai's public marketplace, one price per machine. The page uses datacenter verified hosts when there are at least 8. Otherwise it falls back to all verified hosts and shows both sample sizes.
-- **Power:** EIA API v2 commercial retail electricity price by state. Add a repository secret `EIA_API_KEY` (free at eia.gov/opendata) to turn it on. Without the key, the last snapshot is kept, seeded from EIA Table 5.6.A for April 2026.
-- **Thunder list prices** are hardcoded in `fetch.py` with an as-of date. Update them when thundercompute.com/pricing changes.
+- `public/index.html`: the whole app. The scoring engine is the `<script id="engine">` block; demo inputs are in `<script id="demo">`.
+- `tests/engine.test.mjs`: runs the engine under Node (`npm test`, no dependencies). Checks the demo range, that every quote is verbatim, the question and message rules, and the onboarding pack.
+- `.github/workflows/deploy.yml`: on every push to `main`, runs the tests and publishes `public/` to GitHub Pages.
 
-```bash
-EIA_API_KEY=... python fetch.py
-python -m http.server -d site
-```
+## Before sending the link
 
-## Out of scope
+- [ ] Replace the sample posting in `<script id="demo">` with the live text of Sela's Founding Data Scientist (or AI PM) posting from trysela.com/careers, and set `jdIsSample: false`. The current text is a stand-in written for the demo.
+- [ ] Run `npm test`, then open the live page on desktop and phone.
 
-Financing and cost of capital, tax, residual value, staff and software overhead, cluster networking, and per-second sandbox pricing.
+## Run locally
+
+Open `public/index.html` in a browser. That's it.
