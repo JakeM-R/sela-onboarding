@@ -11,18 +11,17 @@ vm.createContext(ctx);
 vm.runInContext(script("engine") + script("demo"), ctx);
 const { Screen: S, DEMO } = ctx.window;
 
-const [OPS, DS] = DEMO.roles;
-const rubric = S.buildRubric(DS.jd);
-const run = Object.fromEntries(DS.candidates.map((c) => [c.id, S.screen(rubric, c.text)]));
+const [OPS, APM] = DEMO.roles;
+const rubric = S.buildRubric(APM.jd);
+const run = Object.fromEntries(APM.candidates.map((c) => [c.id, S.screen(rubric, c.text)]));
 const opsRubric = S.buildRubric(OPS.jd);
 const opsRun = Object.fromEntries(OPS.candidates.map((c) => [c.id, S.screen(opsRubric, c.text)]));
 
-test("rubric keeps real must-haves and skips nice-to-haves and the writing line", () => {
+test("APM posting: three must-haves, the writing lines go to Communication", () => {
   const must = rubric.axes.filter((a) => a.kind === "must_have");
-  assert.equal(must.length, 3);
-  assert.equal(must.map((a) => a.id).join(","), "production_ml,experimentation,python_sql");
-  assert.equal(must[0].years, 3);
-  assert.equal(rubric.skipped.length, 3); // LLM plus, the writing line, and the in-office line
+  assert.equal(rubric.role_title, "Associate Product Manager");
+  assert.equal(must.map((a) => a.id).join(","), "judgment,ambiguity,ai_fluency");
+  assert.equal(rubric.skipped.filter((x) => /Communication/.test(x.why)).length, 2);
 });
 
 test("every quote is copied verbatim from the candidate text", () => {
@@ -32,12 +31,19 @@ test("every quote is copied verbatim from the candidate text", () => {
   }
 });
 
-test("demo range: strong advances, borderline goes to a person, weak is declined", () => {
-  assert.equal(run.strong.suggestion.decision, "advance");
-  assert.equal(run.borderline.suggestion.decision, "human_review");
-  assert.equal(run.weak.suggestion.decision, "decline");
-  assert.ok(run.strong.suggestion.mean > run.borderline.suggestion.mean);
-  assert.ok(run.borderline.suggestion.mean > run.weak.suggestion.mean);
+test("APM demo range: strong advances, borderline goes to a person, weak is declined", () => {
+  assert.equal(run["apm-strong"].suggestion.decision, "advance");
+  assert.equal(run["apm-mid"].suggestion.decision, "human_review");
+  assert.equal(run["apm-weak"].suggestion.decision, "decline");
+  assert.ok(run["apm-strong"].suggestion.mean > run["apm-mid"].suggestion.mean);
+  assert.ok(run["apm-mid"].suggestion.mean > run["apm-weak"].suggestion.mean);
+});
+
+test("real profile: dated roles read from month-year ranges, education dates ignored", () => {
+  const c = S.parseCandidate(OPS.candidates.find((x) => x.real).text);
+  assert.equal(c.roles.length, 3);
+  assert.equal(c.years, 2);
+  assert.equal(opsRun.jake.suggestion.decision, "advance");
 });
 
 test("Sela's strategy & ops posting: four must-haves, office attendance treated as logistics", () => {
@@ -70,7 +76,7 @@ test("decline names a strength and never mentions scores", () => {
 });
 
 test("onboarding has four weeks, Wednesday remote and compliance before recordings", () => {
-  const o = S.onboarding(run.strong.candidate, rubric.role_title, rubric.axes, run.strong.scores);
+  const o = S.onboarding(run["apm-strong"].candidate, rubric.role_title, rubric.axes, run["apm-strong"].scores);
   assert.equal(o.weeks.length, 4);
   assert.ok(o.firstWeek.some((d) => /Wednesday \(remote\)/.test(d.day)));
   const items = o.checklist.map((c) => c.item);
@@ -98,18 +104,18 @@ test("demo pipeline covers three roles and flags overdue candidates", () => {
   const items = T.demo(NOW);
   const roles = T.roles(items, NOW);
   assert.equal(roles.length, 2);
-  const ds = roles.find((r) => r.role === "Founding Data Scientist");
-  assert.equal(ds.inProcess, 7);
+  const apm = roles.find((r) => r.role === "Associate Product Manager");
+  assert.equal(apm.inProcess, 7);
   const od = T.overdue(items, NOW).map((c) => c.name);
-  assert.ok(od.includes("Jordan Okafor"));   // 6 days in Screened, target 3
+  assert.ok(od.includes("Ethan Park"));      // 6 days in Screened, target 3
   assert.ok(od.includes("Tomás Ortega"));    // 7 days in Interview, target 5
-  assert.ok(!od.includes("Maya Chen"));      // 2 days in Interview
+  assert.ok(!od.includes("Ava Thompson"));   // 2 days in Interview
   assert.ok(od.includes("Marcus Bell"));     // 5 days in Applied, target 3
   assert.ok(!od.includes("Jake Makking-Robinson"));
 });
 
 test("funnel counts who reached each stage, including people declined later", () => {
-  const f = T.funnel(T.demo(NOW).filter((c) => c.role === "Founding Data Scientist"));
+  const f = T.funnel(T.demo(NOW).filter((c) => c.role === "Associate Product Manager"));
   assert.equal(f.map((r) => r.reached).join(","), "9,6,4,1,0");
   assert.equal(Math.round(f[2].conversion * 100), 67);
 });
@@ -126,4 +132,11 @@ test("CSV escapes quotes and has a header row", () => {
   const out = T.csv([{ name: 'Ann "AJ" Lee', role: "R", stage: "Applied", moved: new Date(NOW).toISOString() }], NOW);
   assert.ok(out.startsWith('"Name","Role"'));
   assert.ok(out.includes('"Ann ""AJ"" Lee"'));
+});
+
+test("welcome message names the real title and company", () => {
+  const o = S.onboarding(opsRun.jake.candidate, opsRubric.role_title, opsRubric.axes, opsRun.jake.scores);
+  assert.ok(o.welcome.includes("was Founder’s Analyst at MyEdSpace."), o.welcome);
+  const a = S.onboarding(run["apm-strong"].candidate, rubric.role_title, rubric.axes, run["apm-strong"].scores);
+  assert.ok(a.welcome.includes("was Product Analyst at Ledgerline."), a.welcome);
 });

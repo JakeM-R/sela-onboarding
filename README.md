@@ -16,7 +16,7 @@ Built by Jake Makking-Robinson. A working draft, not a Sela product. All demo da
 6. **Reply:** drafts both an advance and a decline. The decline names one real strength from the application. The reviewer picks.
 7. **Onboarding, on "hire":** a 30-day plan tied to the must-haves, an access checklist (Slack, GitHub, the eval system, and call recordings after compliance training), a first week with Wednesday remote, and a welcome message to the team.
 
-It has two demo roles. **Founding Strategy & Operations Generalist** uses Sela's own posting, with the applicant's real profile alongside a borderline and a weak synthetic candidate. **Founding Data Scientist** uses a sample posting with three synthetic candidates (strong, borderline, weak). Each role opens already compared, so the whole range shows on first load.
+It has two demo roles, both from Sela's own postings. **Founding Strategy & Operations Generalist** has the applicant's real profile (from their resume, contact details left out) alongside a borderline and a weak synthetic candidate. **Associate Product Manager** has three synthetic candidates (strong, borderline, weak). Each role opens already compared, so the whole range shows on first load.
 
 ## Pipeline tracker
 
@@ -36,7 +36,7 @@ The second tab tracks candidates per role through Applied → Screened → Inter
 
 ## Before sending the link
 
-- [ ] Replace the sample posting in `<script id="demo">` with the live text of Sela's Founding Data Scientist (or AI PM) posting from trysela.com/careers, and set `jdIsSample: false`. The current text is a stand-in written for the demo.
+- [ ] Read the two application answers in the real profile (`<script id="demo">`) and rewrite them in your own words if needed.
 - [ ] Run `npm test`, then open the live page on desktop and phone.
 
 ## Run locally
