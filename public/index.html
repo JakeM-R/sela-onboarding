@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screening and Onboarding Agent</title>
+<meta name="description" content="Takes a candidate from application to day one: rubric, evidence-quoted scores, interview kit, candidate message and onboarding plan.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ffffff;
+  --surface: #f7f7f8;
+  --line: #e6e6e9;
+  --ink: #111114;
+  --ink-2: #4a4a55;
+  --ink-3: #8a8a96;
+  --accent: #1f4fd8;
+  --accent-soft: #eef2fd;
+  --good: #137a3e;
+  --good-soft: #e8f5ed;
+  --warn: #9a5b00;
+  --warn-soft: #fdf3e2;
+  --bad: #b42318;
+  --bad-soft: #fdeceb;
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 24px 80px; }
+header h1 { font-size: 28px; line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 8px; font-weight: 700; }
+header p { margin: 0; color: var(--ink-2); max-width: 720px; }
+.byline { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
+.time {
+  margin: 22px 0 32px; padding: 12px 16px; border-left: 3px solid var(--accent);
+  background: var(--accent-soft); border-radius: 0 var(--radius) var(--radius) 0; font-size: 14px;
+}
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); font-weight: 600; margin: 0 0 12px; }
+section { margin-top: 36px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+label.field { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.hint { font-weight: 400; color: var(--ink-3); font-size: 13px; }
+textarea {
+  width: 100%; min-height: 300px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius);
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); background: var(--bg); resize: vertical;
+}
+textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+button {
+  font: inherit; font-size: 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg);
+  color: var(--ink); padding: 8px 14px; cursor: pointer; font-weight: 500;
+}
+button:hover { border-color: var(--ink-3); }
+button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+button.primary:hover { background: #2b2b33; }
+button[disabled] { opacity: 0.5; cursor: progress; }
+button.chip { padding: 4px 10px; font-size: 13px; }
+button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; align-items: center; }
+.status { font-size: 13px; color: var(--ink-2); }
+.error { color: var(--bad); background: var(--bad-soft); padding: 10px 14px; border-radius: var(--radius); font-size: 14px; }
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; vertical-align: middle; }
+.badge.synthetic { background: var(--warn-soft); color: var(--warn); }
+.badge.advance { background: var(--good-soft); color: var(--good); }
+.badge.human_review { background: var(--warn-soft); color: var(--warn); }
+.badge.decline { background: var(--bad-soft); color: var(--bad); }
+.card { border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; background: var(--bg); }
+.headline { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.headline h3 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+.summary { color: var(--ink-2); margin: 8px 0 0; max-width: 680px; }
+.mean { font-size: 13px; color: var(--ink-3); text-align: right; }
+table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+th { text-align: left; font-size: 12px; color: var(--ink-3); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td { padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.axis { width: 22%; font-weight: 600; }
+td.axis small { display: block; font-weight: 400; color: var(--ink-3); font-size: 12px; }
+td.score { width: 90px; white-space: nowrap; }
+.dots { display: inline-flex; gap: 3px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.dot.on { background: var(--ink); }
+.num { font-weight: 600; margin-left: 6px; }
+blockquote { margin: 0 0 6px; padding: 4px 10px; border-left: 2px solid var(--line); color: var(--ink); font-size: 13px; }
+blockquote.ok { border-color: var(--good); }
+blockquote.miss { border-color: var(--bad); background: var(--bad-soft); }
+.flag { font-size: 11px; color: var(--bad); font-weight: 600; }
+.reason { color: var(--ink-2); font-size: 13px; margin-top: 4px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+ol.q { padding-left: 20px; margin: 0; }
+ol.q li { margin-bottom: 12px; }
+ol.q .listen { display: block; color: var(--ink-3); font-size: 13px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; }
+.seg button.on { background: var(--ink); color: #fff; }
+pre.msg { white-space: pre-wrap; font: 14px/1.55 Inter, system-ui, sans-serif; background: var(--surface); border-radius: var(--radius); padding: 14px; margin: 10px 0 0; }
+.compare td, .compare th { padding: 10px; }
+.compare tr.pick { cursor: pointer; }
+.compare tr.pick:hover td { background: var(--surface); }
+details { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }
+details summary { cursor: pointer; font-weight: 600; }
+.axislist { margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; }
+.axislist li { padding: 8px 0; border-top: 1px solid var(--line); }
+.axislist .kind { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.weeks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.week { background: var(--surface); border-radius: var(--radius); padding: 14px; font-size: 13px; }
+.week b { display: block; font-size: 14px; margin-bottom: 6px; }
+.week ul, .days ul { margin: 6px 0 0; padding-left: 16px; }
+.tag { font-size: 11px; color: var(--accent); }
+.check { list-style: none; padding: 0; margin: 0; font-size: 14px; }
+.check li { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+.check small { color: var(--ink-3); margin-left: auto; white-space: nowrap; }
+.days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; font-size: 13px; }
+.days div { background: var(--surface); border-radius: var(--radius); padding: 12px; }
+footer { margin-top: 56px; font-size: 13px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 16px; }
+footer p { margin: 4px 0; }
+[hidden] { display: none !important; }
+@media (max-width: 760px) {
+  .wrap { padding: 24px 16px 60px; }
+  .grid, .two { grid-template-columns: 1fr; }
+  .weeks { grid-template-columns: 1fr 1fr; }
+  .days { grid-template-columns: 1fr; }
+  textarea { min-height: 200px; }
+  td.axis { width: auto; }
+  table.scores, table.scores tbody, table.scores tr, table.scores td { display: block; width: 100%; }
+  table.scores thead { display: none; }
+  table.scores tr { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  table.scores td { border: 0; padding: 4px 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>From application to day one</h1>
+    <p>Paste a job description and one candidate's CV and answers. The agent builds a rubric on Sela's three hiring values plus the role's must-haves, scores the candidate with the CV line behind every score, writes the interview questions, drafts the reply, and on hire writes the onboarding pack.</p>
+    <div class="byline">Built by Jake Makking-Robinson for Sela's strategy &amp; ops role. A working draft, not a Sela product.</div>
+  </header>
+
+  <div class="time">Seconds per candidate, against an estimated 20–30 minutes to read, score and reply by hand. The agent drafts; a person makes every decision.</div>
+
+  <section>
+    <h2>1 · Inputs</h2>
+    <div class="grid">
+      <div>
+        <label class="field" for="jd">Job description <span id="jdBadge" class="badge synthetic">sample posting</span></label>
+        <textarea id="jd" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <label class="field" for="cand">Candidate CV and application answers</label>
+        <div class="chips" id="chips"><span class="hint" style="align-self:center">Demo candidates (synthetic):</span></div>
+        <textarea id="cand" spellcheck="false" placeholder="Paste a CV and any application answers as plain text."></textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="run">Screen candidate</button>
+      <button id="runAll">Run all three demo candidates</button>
+      <span class="status" id="status" role="status" aria-live="polite"></span>
+    </div>
+    <div id="err" class="error" hidden></div>
+  </section>
+
+  <section id="compareSec" hidden>
+    <h2>Demo range</h2>
+    <div class="card" style="padding:0 0 4px">
+      <table class="compare" style="margin:0"><thead><tr><th>Candidate</th><th>Mean</th><th>Suggestion</th><th>Weakest axis</th></tr></thead><tbody id="compare"></tbody></table>
+    </div>
+  </section>
+
+  <section id="rubricSec" hidden>
+    <h2>2 · Rubric</h2>
+    <details>
+      <summary id="rubricTitle">Rubric</summary>
+      <ul class="axislist" id="rubric"></ul>
+    </details>
+  </section>
+
+  <section id="screenSec" hidden>
+    <h2>3 · Screen</h2>
+    <div class="card">
+      <div class="headline">
+        <div>
+          <h3 id="cName"></h3>
+          <p class="summary" id="cSummary"></p>
+        </div>
+        <div class="mean"><span id="cSuggest" class="badge"></span><div id="cMean" style="margin-top:6px"></div></div>
+      </div>
+      <table class="scores"><thead><tr><th>Axis</th><th>Score</th><th>Evidence from the application</th></tr></thead><tbody id="scores"></tbody></table>
+      <p class="hint" id="quoteNote" style="margin:10px 0 0"></p>
+    </div>
+
+    <div class="two">
+      <div class="card">
+        <h2>Interview kit</h2>
+        <ol class="q" id="questions"></ol>
+      </div>
+      <div class="card">
+        <h2>Reply to candidate</h2>
+        <div class="seg" role="group" aria-label="Decision">
+          <button id="pickAdvance">Advance</button><button id="pickDecline">Decline</button>
+        </div>
+        <span class="hint" id="decisionHint" style="margin-left:8px"></span>
+        <pre class="msg" id="msg"></pre>
+        <div class="actions">
+          <button id="copyMsg">Copy message</button>
+          <button class="primary" id="hire">Mark as hired → onboarding</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="onboardSec" hidden>
+    <h2>4 · Onboarding</h2>
+    <div class="card">
+      <h2 style="margin-bottom:10px">First 30 days</h2>
+      <div class="weeks" id="weeks"></div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h2>Access checklist</h2>
+        <ul class="check" id="checklist"></ul>
+      </div>
+      <div class="card">
+        <h2>Welcome message to the team</h2>
+        <pre class="msg" id="welcome" style="margin-top:0"></pre>
+        <div class="actions"><button id="copyWelcome">Copy message</button></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h2>First week</h2>
+      <div class="days" id="days"></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>How it works: the three values axes and their 1/3/5 anchors are fixed and written by hand. The model only adds the role's must-haves, each quoting its job-description line. Every evidence quote is checked against the pasted text; any quote that can't be found is flagged in red. The advance / decline suggestion is a fixed rule on the scores (any must-have at 2 or below suggests decline), not a model judgement.</p>
+    <p>Demo candidates and the sample posting are synthetic. Model: Claude, called server-side so no key reaches the browser. Inputs are not stored; identical inputs are cached at the edge for a week.</p>
+  </footer>
+</div>
+
+<script type="module">
+import { SAMPLE_JD, SAMPLE_JD_IS_PLACEHOLDER, CANDIDATES } from "./demo.js";
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const LABEL = { advance: "Suggest: advance", human_review: "Suggest: human review", decline: "Suggest: decline" };
+
+const state = { rubric: null, rubricFor: null, screen: null, candidate: null, decision: null, results: {} };
+
+$("jd").value = SAMPLE_JD;
+$("jdBadge").hidden = !SAMPLE_JD_IS_PLACEHOLDER;
+$("jd").addEventListener("input", () => { $("jdBadge").hidden = true; });
+
+const markChip = (id) => document.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.id === id));
+for (const c of CANDIDATES) {
+  const b = document.createElement("button");
+  b.className = "chip";
+  b.dataset.id = c.id;
+  b.textContent = c.label;
+  b.addEventListener("click", () => { $("cand").value = c.text; markChip(c.id); });
+  $("chips").appendChild(b);
+}
+$("cand").value = CANDIDATES[0].text;
+markChip(CANDIDATES[0].id);
+$("cand").addEventListener("input", () => markChip(null));
+
+async function post(path, body) {
+  const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({ error: `Server returned ${res.status}.` }));
+  if (!res.ok) throw new Error(data.error || `Server returned ${res.status}.`);
+  return data;
+}
+
+function setBusy(on, text = "") {
+  for (const id of ["run", "runAll", "hire"]) $(id).disabled = on;
+  $("status").textContent = text;
+}
+function showError(e) { $("err").hidden = !e; $("err").textContent = e ? e.message || String(e) : ""; }
+
+async function getRubric(jd) {
+  if (state.rubric && state.rubricFor === jd) return state.rubric;
+  setBusy(true, "Building the rubric from the job description…");
+  state.rubric = await post("/api/rubric", { jd });
+  state.rubricFor = jd;
+  renderRubric();
+  return state.rubric;
+}
+
+async function screenOne(jd, candidate) {
+  const rubric = await getRubric(jd);
+  setBusy(true, `Scoring against ${rubric.axes.length} axes…`);
+  return post("/api/screen", { jd, rubric, candidate });
+}
+
+$("run").addEventListener("click", async () => {
+  showError(null);
+  const jd = $("jd").value.trim(), candidate = $("cand").value.trim();
+  if (!jd || !candidate) return showError(new Error("Paste a job description and a candidate first."));
+  try {
+    const screen = await screenOne(jd, candidate);
+    showScreen(screen, candidate);
+    setBusy(false, `Done in ${screen.seconds ?? "–"}s.`);
+  } catch (e) { setBusy(false); showError(e); }
+});
+
+$("runAll").addEventListener("click", async () => {
+  showError(null);
+  const jd = $("jd").value.trim();
+  try {
+    await getRubric(jd);
+    setBusy(true, "Screening all three demo candidates…");
+    const started = performance.now();
+    const out = await Promise.all(CANDIDATES.map((c) => screenOne(jd, c.text).then((s) => [c, s])));
+    $("compare").innerHTML = "";
+    for (const [c, s] of out) {
+      state.results[c.id] = s;
+      const weak = state.rubric.axes.find((a) => a.id === s.weakest_axis_id);
+      const tr = document.createElement("tr");
+      tr.className = "pick";
+      tr.innerHTML = `<td><b>${esc(s.candidate_name)}</b> <span class="hint">${esc(c.label.toLowerCase())}, synthetic</span></td><td>${s.suggestion.mean.toFixed(2)}</td><td><span class="badge ${s.suggestion.decision}">${LABEL[s.suggestion.decision]}</span></td><td>${esc(weak?.name || s.weakest_axis_id)}</td>`;
+      tr.addEventListener("click", () => { $("cand").value = c.text; markChip(c.id); showScreen(s, c.text); $("screenSec").scrollIntoView({ behavior: "smooth" }); });
+      $("compare").appendChild(tr);
+    }
+    $("compareSec").hidden = false;
+    showScreen(out[0][1], out[0][0].text);
+    setBusy(false, `Three candidates in ${Math.round((performance.now() - started) / 1000)}s. Click a row to open it.`);
+  } catch (e) { setBusy(false); showError(e); }
+});
+
+function renderRubric() {
+  const r = state.rubric;
+  $("rubricTitle").textContent = `Rubric for ${r.role_title}: ${r.axes.length} axes`;
+  $("rubric").innerHTML = r.axes.map((a) => `
+    <li><span class="kind">${a.kind === "fixed" ? "Sela hiring value · fixed" : "Role must-have · from the JD"}</span><br>
+    <b>${esc(a.name)}</b>${a.question ? ` · ${esc(a.question)}` : ""}
+    ${a.jd_quote ? `<blockquote class="${a.jd_quote_verified ? "ok" : "miss"}">“${esc(a.jd_quote)}”${a.jd_quote_verified ? "" : ' <span class="flag">not found in JD</span>'}</blockquote>` : ""}
+    <div class="reason">1: ${esc(a.anchors[1])}<br>3: ${esc(a.anchors[3])}<br>5: ${esc(a.anchors[5])}</div></li>`).join("");
+  $("rubricSec").hidden = false;
+}
+
+function showScreen(s, candidate) {
+  state.screen = s; state.candidate = candidate;
+  const axes = new Map(state.rubric.axes.map((a) => [a.id, a]));
+  $("cName").textContent = s.candidate_name;
+  $("cSummary").textContent = s.summary;
+  $("cSuggest").className = `badge ${s.suggestion.decision}`;
+  $("cSuggest").textContent = LABEL[s.suggestion.decision];
+  $("cMean").textContent = `Mean ${s.suggestion.mean.toFixed(2)} / 5`;
+  $("scores").innerHTML = s.scores.map((sc) => {
+    const a = axes.get(sc.axis_id) || { name: sc.axis_id };
+    const dots = [1, 2, 3, 4, 5].map((i) => `<span class="dot${i <= sc.score ? " on" : ""}"></span>`).join("");
+    const ev = sc.evidence.length
+      ? sc.evidence.map((e) => `<blockquote class="${e.verified ? "ok" : "miss"}">“${esc(e.text)}”${e.verified ? "" : ' <span class="flag">not found in text, check by hand</span>'}</blockquote>`).join("")
+      : `<blockquote class="miss">No supporting line in the application.</blockquote>`;
+    return `<tr><td class="axis">${esc(a.name)}<small>${a.kind === "must_have" ? "must-have" : "hiring value"}</small></td>
+      <td class="score"><span class="dots">${dots}</span><span class="num">${sc.score}</span></td>
+      <td>${ev}<div class="reason">${esc(sc.reasoning)}</div></td></tr>`;
+  }).join("");
+  $("quoteNote").textContent = s.unverified_quotes
+    ? `${s.unverified_quotes} quote(s) could not be matched to the pasted text. Check those scores by hand.`
+    : "Every quoted line was matched to the pasted text.";
+  $("questions").innerHTML = s.interview_questions.map((q) =>
+    `<li>${esc(q.question)}<span class="listen">${esc(axes.get(q.axis_id)?.name || q.axis_id)} · listen for: ${esc(q.listen_for)}</span></li>`).join("");
+  pickDecision(s.suggestion.decision === "decline" ? "decline" : "advance", s.suggestion.decision === "human_review");
+  $("screenSec").hidden = false;
+  $("onboardSec").hidden = true;
+}
+
+function pickDecision(d, undecided = false) {
+  state.decision = d;
+  $("pickAdvance").classList.toggle("on", d === "advance");
+  $("pickDecline").classList.toggle("on", d === "decline");
+  const m = state.screen.messages[d];
+  $("msg").textContent = `Subject: ${m.subject}\n\n${m.body}`;
+  $("decisionHint").textContent = undecided ? "Borderline: your call. Both drafts are ready." : d === "decline" ? `Names: ${m.named_strength}` : "";
+  $("hire").hidden = d !== "advance";
+}
+$("pickAdvance").addEventListener("click", () => pickDecision("advance"));
+$("pickDecline").addEventListener("click", () => pickDecision("decline"));
+
+function copy(id, btn) {
+  navigator.clipboard?.writeText($(id).textContent).then(() => {
+    const t = btn.textContent; btn.textContent = "Copied"; setTimeout(() => (btn.textContent = t), 1200);
+  });
+}
+$("copyMsg").addEventListener("click", (e) => copy("msg", e.target));
+$("copyWelcome").addEventListener("click", (e) => copy("welcome", e.target));
+
+$("hire").addEventListener("click", async () => {
+  showError(null);
+  try {
+    setBusy(true, "Writing the onboarding pack…");
+    const o = await post("/api/onboard", { rubric: state.rubric, candidate: state.candidate, screen: state.screen });
+    const axes = new Map(state.rubric.axes.map((a) => [a.id, a]));
+    $("weeks").innerHTML = o.thirty_day_plan.map((w) => `<div class="week"><b>Week ${w.week}: ${esc(w.focus)}</b>
+      <span class="tag">${w.must_have_id === "ramp" ? "Ramp-up" : esc(axes.get(w.must_have_id)?.name || w.must_have_id)}</span>
+      <ul>${w.outcomes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");
+    $("checklist").innerHTML = o.access_checklist.map((c, i) =>
+      `<li><input type="checkbox" id="ck${i}"><label for="ck${i}">${esc(c.item)}</label><small>${esc(c.owner)} · ${esc(c.due)}</small></li>`).join("");
+    $("days").innerHTML = o.first_week.map((d) => `<div><b>${esc(d.day)}</b><ul>${d.items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");
+    $("welcome").textContent = o.welcome_message;
+    $("onboardSec").hidden = false;
+    $("onboardSec").scrollIntoView({ behavior: "smooth" });
+    setBusy(false, `Onboarding pack in ${o.seconds ?? "–"}s.`);
+  } catch (e) { setBusy(false); showError(e); }
+});
+</script>
+</body>
+</html>
