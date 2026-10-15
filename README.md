@@ -18,9 +18,19 @@ Built by Jake Makking-Robinson. A working draft, not a Sela product. All demo da
 
 It opens with three synthetic candidates (strong, borderline, weak) already compared, so the whole range shows on first load.
 
+## Pipeline tracker
+
+The second tab tracks candidates per role through Applied → Screened → Interview → Offer → Hired, with Declined recorded against the stage it happened at.
+
+- **All roles:** one row per role with counts at each stage and how many are overdue.
+- **Per role:** a funnel of how many candidates reached each stage and the conversion between stages, a "needs attention" list of anyone past their stage's target (Applied 3 days, Screened 3, Interview 5, Offer 3), and the candidate list with a stage picker.
+- **Add to tracker** on the screen tab sends the screened candidate into their role's pipeline with the score and suggestion. It never moves someone backwards. Candidates can also be added by hand.
+- **Copy as CSV** puts the current view on the clipboard for a spreadsheet.
+- It opens with a synthetic demo pipeline across three roles, with a button to clear it. Data is saved in the viewer's browser only (localStorage), so nothing is sent anywhere and each person sees their own copy.
+
 ## Files
 
-- `public/index.html`: the whole app. The scoring engine is the `<script id="engine">` block; demo inputs are in `<script id="demo">`.
+- `public/index.html`: the whole app. The scoring engine is the `<script id="engine">` block, tracker logic is `<script id="tracker-core">`, and demo inputs are in `<script id="demo">`.
 - `tests/engine.test.mjs`: runs the engine under Node (`npm test`, no dependencies). Checks the demo range, that every quote is verbatim, the question and message rules, and the onboarding pack.
 - `.github/workflows/deploy.yml`: on every push to `main`, runs the tests and publishes `public/` to GitHub Pages.
 

@@ -46,6 +46,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--font-ui); }
 .wrap {
   max-width: 1060px; margin: 0 auto;
@@ -136,7 +137,40 @@ details summary { cursor: pointer; font-weight: 600; }
 .days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 footer { font-size: 13px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 6px; }
 footer p { margin: 0; max-width: 90ch; }
+/* Tabs and tracker */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 10px 14px; color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tabs .count { font-weight: 500; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.panel { display: grid; gap: 36px; min-width: 0; }
+.demo-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--warn-soft); color: var(--ink); padding: 10px 14px; border-radius: var(--radius); font-size: 14px; }
+.funnel { display: grid; gap: 10px; }
+.frow { display: grid; grid-template-columns: 88px 1fr 104px; gap: 10px; align-items: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+.frow .track { height: 14px; background: var(--surface); border-radius: 0 4px 4px 0; }
+.frow .bar { height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; min-width: 2px; }
+.frow .val { color: var(--ink-2); }
+.frow .val b { color: var(--ink); }
+.attn { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+.attn li { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.attn .who { font-weight: 600; }
+.attn .meta { color: var(--ink-3); font-size: 13px; margin-left: auto; }
+.trk td, .trk th, .roles td, .roles th { font-variant-numeric: tabular-nums; }
+.trk select, .addform select, .addform input {
+  font: 14px var(--font-ui); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px;
+}
+.trk td { vertical-align: middle; }
+.trk.one-role .c-role { display: none; }
+.trk .late { color: var(--warn); font-weight: 600; }
+.trk .tagline { display: block; font-size: 12px; color: var(--ink-3); }
+.roles tr.pick { cursor: pointer; }
+.roles tr.pick:hover td, .roles tr.pick:focus-visible td { background: var(--surface); }
+button.link { border: 0; padding: 0; background: none; color: var(--accent); text-decoration: underline; font-weight: 500; }
+button.danger { color: var(--bad); border-color: var(--bad); }
+.addform { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.addform label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.empty { color: var(--ink-3); font-size: 14px; }
 @media (max-width: 760px) {
+  .frow { grid-template-columns: 72px 1fr 92px; }
   .wrap { padding-block: 24px 56px; gap: 28px; }
   header h1 { font-size: 24px; }
   .grid, .two { grid-template-columns: 1fr; }
@@ -163,6 +197,12 @@ footer p { margin: 0; max-width: 90ch; }
 
   <div class="time"><b>Under a second per candidate</b><span>against an estimated 20–30 minutes to read, score and reply by hand. It drafts; a person makes every decision. Nothing you paste leaves this page.</span></div>
 
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button role="tab" id="tabScreen" aria-selected="true" aria-controls="panelScreen">Screen a candidate</button>
+    <button role="tab" id="tabTracker" aria-selected="false" aria-controls="panelTracker">Pipeline tracker <span class="count" id="trackerCount"></span></button>
+  </nav>
+
+  <div id="panelScreen" class="panel" role="tabpanel" aria-labelledby="tabScreen">
   <section aria-labelledby="h-inputs">
     <h2 id="h-inputs">1 · Inputs</h2>
     <div class="grid">
@@ -232,6 +272,8 @@ footer p { margin: 0; max-width: 90ch; }
         <pre class="msg" id="msg"></pre>
         <div class="actions">
           <button id="copyMsg">Copy message</button>
+          <button id="track">Add to tracker</button>
+          <span class="status" id="trackMsg" role="status" aria-live="polite"></span>
           <button class="primary" id="hire">Mark as hired → onboarding</button>
         </div>
       </div>
@@ -265,6 +307,56 @@ footer p { margin: 0; max-width: 90ch; }
     <p><b>How it scores.</b> The three hiring-value axes and their 1/3/5 anchors are fixed. Must-haves are the requirement lines in the job description, minus nice-to-haves and anything the values already cover. A score rises with lines that show an action, a number and an outcome, and falls with buzzwords. Every quote is copied from the pasted text, never written. The suggestion is a fixed rule: any must-have at 2 or below suggests decline.</p>
     <p><b>What this version is.</b> A transparent rules engine that runs in your browser: no model, no server, no stored data. The demo candidates and the sample posting are synthetic. A production version would swap the matching step for a language model and keep the same rubric, quoting and decision rule.</p>
   </footer>
+  </div>
+
+  <div id="panelTracker" class="panel" role="tabpanel" aria-labelledby="tabTracker" hidden>
+    <section aria-label="Choose a role">
+      <div class="chips" id="roleChips"></div>
+      <div id="demoBar" class="demo-bar" hidden><span>This is a demo pipeline of synthetic candidates.</span><button id="clearDemo">Clear demo candidates</button></div>
+    </section>
+
+    <section id="overviewSec" aria-labelledby="h-overview">
+      <h2 id="h-overview">All roles</h2>
+      <div class="card" style="padding:0">
+        <div class="tablebox">
+          <table class="roles"><thead><tr><th>Role</th><th>In process</th><th>Applied</th><th>Screened</th><th>Interview</th><th>Offer</th><th>Hired</th><th>Overdue</th></tr></thead><tbody id="rolesBody"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-pipe">
+      <h2 id="h-pipe">Pipeline</h2>
+      <div class="two">
+        <div class="card">
+          <h2>Funnel: candidates who reached each stage</h2>
+          <div class="funnel" id="funnel"></div>
+        </div>
+        <div class="card">
+          <h2>Needs attention</h2>
+          <ul class="attn" id="attention"></ul>
+          <p class="hint" style="margin:0">Overdue means longer in a stage than its target: Applied 3 days, Screened 3, Interview 5, Offer 3.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="headline"><h2>Candidates</h2><button id="copyCsv">Copy as CSV</button></div>
+        <div class="tablebox">
+          <table class="trk"><thead><tr><th>Candidate</th><th class="c-role">Role</th><th>Stage</th><th>Screen</th><th>Days in stage</th><th></th></tr></thead><tbody id="trkBody"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-add">
+      <h2 id="h-add">Add a candidate by hand</h2>
+      <form class="card addform" id="addForm">
+        <label for="addName">Name<input id="addName" required autocomplete="off"></label>
+        <label for="addRole">Role<input id="addRole" list="roleList" required autocomplete="off"></label>
+        <datalist id="roleList"></datalist>
+        <label for="addStage">Stage<select id="addStage"></select></label>
+        <button class="primary" type="submit">Add candidate</button>
+      </form>
+      <p class="hint" style="margin:0">The tracker saves to this browser only. Nothing is sent anywhere, and other people opening the link see their own copy.</p>
+    </section>
+  </div>
 </div>
 
 <script id="engine">
@@ -710,6 +802,94 @@ footer p { margin: 0; max-width: 90ch; }
 })(typeof window !== "undefined" ? window : globalThis);
 </script>
 
+<script id="tracker-core">
+// Pipeline tracker logic. Pure functions over a list of candidate records.
+(function (root) {
+  const STAGES = ["Applied", "Screened", "Interview", "Offer", "Hired"];
+  const ALL = [...STAGES, "Declined"];
+  const TARGET_DAYS = { Applied: 3, Screened: 3, Interview: 5, Offer: 3 };
+  const DAY = 86400000;
+  const daysIn = (c, now) => Math.max(0, Math.floor((now - Date.parse(c.moved)) / DAY));
+  const reachedIndex = (c) => (c.stage === "Declined" ? STAGES.indexOf(c.declinedFrom || "Applied") : STAGES.indexOf(c.stage));
+  const active = (c) => c.stage !== "Hired" && c.stage !== "Declined";
+
+  function funnel(items) {
+    const reached = STAGES.map((_, i) => items.filter((c) => reachedIndex(c) >= i).length);
+    return STAGES.map((stage, i) => ({
+      stage,
+      reached: reached[i],
+      now: items.filter((c) => c.stage === stage).length,
+      conversion: i === 0 || !reached[i - 1] ? null : reached[i] / reached[i - 1],
+    }));
+  }
+
+  function overdue(items, now) {
+    return items
+      .filter((c) => active(c) && daysIn(c, now) > TARGET_DAYS[c.stage])
+      .map((c) => ({ ...c, days: daysIn(c, now), over: daysIn(c, now) - TARGET_DAYS[c.stage] }))
+      .sort((a, b) => b.over - a.over);
+  }
+
+  function roles(items, now) {
+    const names = [...new Set(items.map((c) => c.role))].sort();
+    return names.map((role) => {
+      const r = items.filter((c) => c.role === role);
+      const count = (st) => r.filter((c) => c.stage === st).length;
+      return { role, inProcess: r.filter(active).length, Applied: count("Applied"), Screened: count("Screened"), Interview: count("Interview"), Offer: count("Offer"), Hired: count("Hired"), overdue: overdue(r, now).length };
+    });
+  }
+
+  function move(c, stage, now) {
+    if (stage === c.stage) return c;
+    const next = { ...c, stage, moved: new Date(now).toISOString() };
+    if (stage === "Declined") next.declinedFrom = c.stage === "Declined" ? c.declinedFrom : c.stage;
+    else delete next.declinedFrom;
+    return next;
+  }
+
+  function csv(items, now) {
+    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [["Name", "Role", "Stage", "Days in stage", "Screen mean", "Screen suggestion"]];
+    for (const c of items) rows.push([c.name, c.role, c.stage === "Declined" ? `Declined (at ${c.declinedFrom || "Applied"})` : c.stage, daysIn(c, now), c.mean ?? "", c.suggestion ?? ""]);
+    return rows.map((r) => r.map(q).join(",")).join("\n");
+  }
+
+  // Synthetic demo pipeline, dated relative to "now" so the overdue flags are live.
+  function demo(now) {
+    const ago = (d) => new Date(now - d * DAY).toISOString();
+    const rows = [
+      ["Maya Chen", "Founding Data Scientist", "Interview", 2, 4.83, "advance"],
+      ["Jordan Okafor", "Founding Data Scientist", "Screened", 6, 3.67, "human_review"],
+      ["Sam Patel", "Founding Data Scientist", "Declined", 1, 1.33, "decline", "Screened"],
+      ["Priya Raman", "Founding Data Scientist", "Applied", 1],
+      ["Lucas Ferreira", "Founding Data Scientist", "Applied", 4],
+      ["Hannah Weiss", "Founding Data Scientist", "Applied", 2],
+      ["Tomás Ortega", "Founding Data Scientist", "Interview", 7, 4.17, "advance"],
+      ["Grace Liu", "Founding Data Scientist", "Offer", 2, 4.5, "advance"],
+      ["Daniel Brooks", "Founding Data Scientist", "Declined", 9, 2.17, "decline", "Interview"],
+      ["Aisha Bello", "AI Product Manager", "Applied", 5],
+      ["Owen Gallagher", "AI Product Manager", "Applied", 1],
+      ["Mei Tanaka", "AI Product Manager", "Screened", 2, 3.5, "human_review"],
+      ["Rafael Costa", "AI Product Manager", "Screened", 4, 4.0, "advance"],
+      ["Elena Petrova", "AI Product Manager", "Interview", 3, 4.33, "advance"],
+      ["Noah Kim", "AI Product Manager", "Declined", 6, 2.0, "decline", "Screened"],
+      ["Chloe Martin", "Customer Success Lead", "Applied", 2],
+      ["Ibrahim Yusuf", "Customer Success Lead", "Interview", 1, 3.83, "advance"],
+      ["Sofia Rossi", "Customer Success Lead", "Offer", 5, 4.17, "advance"],
+      ["Ben Carter", "Customer Success Lead", "Hired", 12, 4.67, "advance"],
+    ];
+    return rows.map(([name, role, stage, d, mean, suggestion, declinedFrom], i) => ({
+      id: "demo-" + i, name, role, stage, moved: ago(d), added: ago(d + 3), mean: mean ?? null, suggestion: suggestion ?? null, demo: true,
+      ...(declinedFrom ? { declinedFrom } : {}),
+    }));
+  }
+
+  const api = { STAGES, ALL, TARGET_DAYS, daysIn, funnel, overdue, roles, move, csv, demo, active };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  root.Tracker = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+
 <script id="demo">
 // Demo inputs, all synthetic. SAMPLE_JD is a stand-in for Sela's Founding Data Scientist posting:
 // swap in the live text from trysela.com/careers before sending the link.
@@ -865,6 +1045,7 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
     pick(s.suggestion.decision === "decline" ? "decline" : "advance", s.suggestion.decision === "human_review");
     $("screenSec").hidden = false;
     $("onboardSec").hidden = true;
+    if ($("trackMsg")) $("trackMsg").textContent = "";
   }
 
   function pick(d, undecided = false) {
@@ -941,6 +1122,138 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
     $("onboardSec").hidden = false;
     $("onboardSec").scrollIntoView({ behavior: "smooth", block: "start" });
   });
+
+  // ---------- Tracker ----------
+  const T = window.Tracker;
+  const KEY = "screening-desk-tracker-v1";
+  const LABEL_SHORT = { advance: "advance", human_review: "human review", decline: "decline" };
+  const trk = { items: [], role: "all", armed: null };
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) { const d = JSON.parse(raw); if (Array.isArray(d.items)) return d.items; }
+    } catch {}
+    return T.demo(Date.now());
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ items: trk.items })); } catch {} }
+  trk.items = load();
+
+  for (const st of T.ALL) $("addStage").insertAdjacentHTML("beforeend", `<option>${st}</option>`);
+
+  function setTab(name) {
+    const tracker = name === "tracker";
+    $("tabScreen").setAttribute("aria-selected", String(!tracker));
+    $("tabTracker").setAttribute("aria-selected", String(tracker));
+    $("panelScreen").hidden = tracker;
+    $("panelTracker").hidden = !tracker;
+    if (tracker) renderTracker();
+    try { history.replaceState(null, "", tracker ? "#tracker" : "#screen"); } catch {}
+  }
+  $("tabScreen").addEventListener("click", () => setTab("screen"));
+  $("tabTracker").addEventListener("click", () => setTab("tracker"));
+  $("tabScreen").parentElement.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const t = $("tabScreen").getAttribute("aria-selected") === "true" ? "tracker" : "screen"; setTab(t); $(t === "tracker" ? "tabTracker" : "tabScreen").focus(); }
+  });
+
+  function stageCell(c) {
+    return `<select data-id="${esc(c.id)}" aria-label="Stage for ${esc(c.name)}">${T.ALL.map((st) => `<option${st === c.stage ? " selected" : ""}>${st}</option>`).join("")}</select>`;
+  }
+
+  function renderTracker() {
+    const now = Date.now();
+    const items = trk.items;
+    const roleRows = T.roles(items, now);
+    if (trk.role !== "all" && !roleRows.some((r) => r.role === trk.role)) trk.role = "all";
+    $("trackerCount").textContent = `(${items.filter(T.active).length})`;
+    $("demoBar").hidden = !items.some((c) => c.demo);
+    $("roleList").innerHTML = roleRows.map((r) => `<option value="${esc(r.role)}">`).join("");
+
+    $("roleChips").innerHTML = `<span class="hint">Role:</span>` + [{ role: "all", label: "All roles", n: items.filter(T.active).length }, ...roleRows.map((r) => ({ role: r.role, label: r.role, n: r.inProcess }))]
+      .map((r) => `<button class="chip${trk.role === r.role ? " on" : ""}" data-role="${esc(r.role)}">${esc(r.label)} · ${r.n}</button>`).join("");
+
+    $("overviewSec").hidden = trk.role !== "all";
+    $("rolesBody").innerHTML = roleRows.length
+      ? roleRows.map((r) => `<tr class="pick" tabindex="0" data-role="${esc(r.role)}"><td><b>${esc(r.role)}</b></td><td>${r.inProcess}</td><td>${r.Applied}</td><td>${r.Screened}</td><td>${r.Interview}</td><td>${r.Offer}</td><td>${r.Hired}</td><td>${r.overdue ? `<span class="badge human_review">${r.overdue} overdue</span>` : "0"}</td></tr>`).join("")
+      : `<tr><td colspan="8" class="empty">No candidates yet. Screen one and press “Add to tracker”, or add one by hand below.</td></tr>`;
+
+    const scoped = trk.role === "all" ? items : items.filter((c) => c.role === trk.role);
+    const f = T.funnel(scoped);
+    const top = Math.max(1, f[0].reached);
+    $("funnel").innerHTML = scoped.length ? f.map((r) => {
+      const conv = r.conversion === null ? "" : ` · ${Math.round(r.conversion * 100)}%`;
+      const tip = `${r.stage}: ${r.reached} reached, ${r.now} here now${r.conversion === null ? "" : `, ${Math.round(r.conversion * 100)}% of the previous stage`}`;
+      return `<div class="frow" title="${esc(tip)}"><span>${r.stage}</span><div class="track"><div class="bar" style="width:${(r.reached / top) * 100}%"></div></div><span class="val"><b>${r.reached}</b>${conv}</span></div>`;
+    }).join("") : `<p class="empty">No candidates in this view.</p>`;
+
+    const od = T.overdue(scoped, now);
+    $("attention").innerHTML = od.length
+      ? od.map((c) => `<li><span class="badge human_review">${c.over}d over</span><span class="who">${esc(c.name)}</span><span>${esc(c.stage)}</span><span class="meta">${c.days} days${trk.role === "all" ? ` · ${esc(c.role)}` : ""}</span></li>`).join("")
+      : `<li class="empty">Nothing is waiting longer than its target.</li>`;
+
+    $("trkBody").closest("table").classList.toggle("one-role", trk.role !== "all");
+    const order = (c) => (c.stage === "Declined" ? 9 : -T.ALL.indexOf(c.stage));
+    const rows = [...scoped].sort((a, b) => order(a) - order(b) || T.daysIn(b, now) - T.daysIn(a, now));
+    $("trkBody").innerHTML = rows.length ? rows.map((c) => {
+      const d = T.daysIn(c, now);
+      const late = T.active(c) && d > T.TARGET_DAYS[c.stage];
+      const screenCell = c.suggestion ? `<span class="badge ${c.suggestion}">${LABEL_SHORT[c.suggestion]}</span> ${Number(c.mean).toFixed(2)}` : `<span class="hint">not screened</span>`;
+      const armed = trk.armed === c.id;
+      return `<tr><td><b>${esc(c.name)}</b>${c.demo ? '<span class="tagline">synthetic</span>' : ""}${c.stage === "Declined" ? `<span class="tagline">declined at ${esc(c.declinedFrom || "Applied")}</span>` : ""}</td>
+        <td class="c-role">${esc(c.role)}</td><td>${stageCell(c)}</td><td>${screenCell}</td>
+        <td class="${late ? "late" : ""}">${d}${late ? " · overdue" : ""}</td>
+        <td><button class="${armed ? "danger" : "link"}" data-remove="${esc(c.id)}">${armed ? "Confirm remove" : "Remove"}</button></td></tr>`;
+    }).join("") : `<tr><td colspan="6" class="empty">No candidates in this view.</td></tr>`;
+  }
+
+  $("roleChips").addEventListener("click", (e) => { const b = e.target.closest("[data-role]"); if (b) { trk.role = b.dataset.role; renderTracker(); } });
+  const openRole = (e) => { const tr = e.target.closest("tr[data-role]"); if (tr) { trk.role = tr.dataset.role; renderTracker(); } };
+  $("rolesBody").addEventListener("click", openRole);
+  $("rolesBody").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openRole(e); } });
+  $("trkBody").addEventListener("change", (e) => {
+    const sel = e.target.closest("select[data-id]"); if (!sel) return;
+    trk.items = trk.items.map((c) => (c.id === sel.dataset.id ? T.move(c, sel.value, Date.now()) : c));
+    save(); renderTracker();
+  });
+  $("trkBody").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-remove]"); if (!b) return;
+    if (trk.armed === b.dataset.remove) { trk.items = trk.items.filter((c) => c.id !== b.dataset.remove); trk.armed = null; save(); }
+    else trk.armed = b.dataset.remove;
+    renderTracker();
+  });
+  $("clearDemo").addEventListener("click", () => { trk.items = trk.items.filter((c) => !c.demo); save(); renderTracker(); });
+  $("copyCsv").addEventListener("click", async (e) => {
+    const btn = e.currentTarget, now = Date.now();
+    const scoped = trk.role === "all" ? trk.items : trk.items.filter((c) => c.role === trk.role);
+    try { await navigator.clipboard.writeText(T.csv(scoped, now)); btn.textContent = "Copied"; }
+    catch { btn.textContent = "Copy blocked by the browser"; }
+    setTimeout(() => (btn.textContent = "Copy as CSV"), 1600);
+  });
+  $("addForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = $("addName").value.trim(), role = $("addRole").value.trim(), stage = $("addStage").value;
+    if (!name || !role) return;
+    const now = new Date().toISOString();
+    trk.items.push({ id: "c-" + Date.now(), name, role, stage, moved: now, added: now, mean: null, suggestion: null, ...(stage === "Declined" ? { declinedFrom: "Applied" } : {}) });
+    save(); trk.role = role; $("addName").value = ""; renderTracker();
+  });
+
+  $("track").addEventListener("click", () => {
+    const s = state.screen, role = state.rubric.role_title, now = new Date().toISOString();
+    const existing = trk.items.find((c) => c.name === s.candidate_name && c.role === role);
+    // Never move someone backwards: a candidate already at Interview stays there.
+    const ahead = existing && existing.stage !== "Declined" && T.STAGES.indexOf(existing.stage) > T.STAGES.indexOf("Screened");
+    const stage = state.decision === "decline" ? "Declined" : ahead ? existing.stage : "Screened";
+    const moved = existing && existing.stage === stage ? existing.moved : now;
+    const rec = { id: existing ? existing.id : "c-" + Date.now(), name: s.candidate_name, role, stage, moved, added: existing ? existing.added : now,
+      mean: s.suggestion.mean, suggestion: s.suggestion.decision, ...(stage === "Declined" ? { declinedFrom: "Screened" } : {}) };
+    trk.items = existing ? trk.items.map((c) => (c.id === existing.id ? rec : c)) : [...trk.items, rec];
+    save(); trk.role = role; renderTracker();
+    $("trackMsg").innerHTML = `${existing ? "Updated" : "Added"} ${esc(s.candidate_name)} in the ${esc(role)} pipeline as ${stage}. <button class="link" id="goTracker">Open the tracker</button>`;
+    $("goTracker").addEventListener("click", () => { setTab("tracker"); window.scrollTo({ top: 0, behavior: "smooth" }); });
+  });
+
+  renderTracker();
+  if (location.hash === "#tracker") setTab("tracker");
 
   // Open in a working state: the demo range, with the strong candidate on screen.
   $("cand").value = D.candidates[0].text;

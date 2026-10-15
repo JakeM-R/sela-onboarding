@@ -68,3 +68,41 @@ test("the suggestion rule", () => {
   assert.equal(S.suggest(s([["a", 4], ["m", 4]]), ["m"]).decision, "advance");
   assert.equal(S.suggest(s([["a", 3], ["m", 3]]), ["m"]).decision, "human_review");
 });
+
+// ---------- Tracker ----------
+vm.runInContext(script("tracker-core"), ctx);
+const T = ctx.window.Tracker;
+const NOW = Date.parse("2026-10-15T12:00:00Z");
+
+test("demo pipeline covers three roles and flags overdue candidates", () => {
+  const items = T.demo(NOW);
+  const roles = T.roles(items, NOW);
+  assert.equal(roles.length, 3);
+  const ds = roles.find((r) => r.role === "Founding Data Scientist");
+  assert.equal(ds.inProcess, 7);
+  const od = T.overdue(items, NOW).map((c) => c.name);
+  assert.ok(od.includes("Jordan Okafor"));   // 6 days in Screened, target 3
+  assert.ok(od.includes("Tomás Ortega"));    // 7 days in Interview, target 5
+  assert.ok(!od.includes("Maya Chen"));      // 2 days in Interview
+  assert.ok(!od.includes("Ben Carter"));     // hired, never overdue
+});
+
+test("funnel counts who reached each stage, including people declined later", () => {
+  const f = T.funnel(T.demo(NOW).filter((c) => c.role === "Founding Data Scientist"));
+  assert.equal(f.map((r) => r.reached).join(","), "9,6,4,1,0");
+  assert.equal(Math.round(f[2].conversion * 100), 67);
+});
+
+test("moving to Declined remembers the stage, moving back clears it", () => {
+  const c = { id: "x", name: "A", role: "R", stage: "Interview", moved: new Date(NOW - 5 * 864e5).toISOString() };
+  const d = T.move(c, "Declined", NOW);
+  assert.equal(d.declinedFrom, "Interview");
+  assert.equal(T.daysIn(d, NOW), 0);
+  assert.equal(T.move(d, "Offer", NOW).declinedFrom, undefined);
+});
+
+test("CSV escapes quotes and has a header row", () => {
+  const out = T.csv([{ name: 'Ann "AJ" Lee', role: "R", stage: "Applied", moved: new Date(NOW).toISOString() }], NOW);
+  assert.ok(out.startsWith('"Name","Role"'));
+  assert.ok(out.includes('"Ann ""AJ"" Lee"'));
+});
