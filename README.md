@@ -16,7 +16,7 @@ Built by Jake Makking-Robinson. A working draft, not a Sela product. All demo da
 6. **Reply:** drafts both an advance and a decline. The decline names one real strength from the application. The reviewer picks.
 7. **Onboarding, on "hire":** a 30-day plan tied to the must-haves, an access checklist (Slack, GitHub, the eval system, and call recordings after compliance training), a first week with Wednesday remote, and a welcome message to the team.
 
-It opens with three synthetic candidates (strong, borderline, weak) already compared, so the whole range shows on first load.
+It has two demo roles. **Founding Strategy & Operations Generalist** uses Sela's own posting, with the applicant's real profile alongside a borderline and a weak synthetic candidate. **Founding Data Scientist** uses a sample posting with three synthetic candidates (strong, borderline, weak). Each role opens already compared, so the whole range shows on first load.
 
 ## Pipeline tracker
 

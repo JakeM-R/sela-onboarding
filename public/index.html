@@ -205,20 +205,21 @@ button.danger { color: var(--bad); border-color: var(--bad); }
   <div id="panelScreen" class="panel" role="tabpanel" aria-labelledby="tabScreen">
   <section aria-labelledby="h-inputs">
     <h2 id="h-inputs">1 · Inputs</h2>
+    <div class="chips" id="roleDemo"><span class="hint">Demo role:</span></div>
     <div class="grid">
       <div>
-        <label class="field" for="jd">Job description <span id="jdBadge" class="badge sample">sample posting</span></label>
+        <label class="field" for="jd">Job description <span id="jdBadge" class="badge sample"></span></label>
         <textarea id="jd" spellcheck="false"></textarea>
       </div>
       <div>
         <label class="field" for="cand">Candidate CV and application answers</label>
-        <div class="chips" id="chips"><span class="hint">Demo candidates, all synthetic:</span></div>
+        <div class="chips" id="chips"></div>
         <textarea id="cand" spellcheck="false" placeholder="Paste a CV and any application answers as plain text."></textarea>
       </div>
     </div>
     <div class="actions">
       <button class="primary" id="run">Screen candidate</button>
-      <button id="runAll">Compare all three demo candidates</button>
+      <button id="runAll">Compare this role's demo candidates</button>
       <span class="status" id="status" role="status" aria-live="polite"></span>
     </div>
     <div id="err" class="error" hidden></div>
@@ -305,14 +306,14 @@ button.danger { color: var(--bad); border-color: var(--bad); }
 
   <footer>
     <p><b>How it scores.</b> The three hiring-value axes and their 1/3/5 anchors are fixed. Must-haves are the requirement lines in the job description, minus nice-to-haves and anything the values already cover. A score rises with lines that show an action, a number and an outcome, and falls with buzzwords. Every quote is copied from the pasted text, never written. The suggestion is a fixed rule: any must-have at 2 or below suggests decline.</p>
-    <p><b>What this version is.</b> A transparent rules engine that runs in your browser: no model, no server, no stored data. The demo candidates and the sample posting are synthetic. A production version would swap the matching step for a language model and keep the same rubric, quoting and decision rule.</p>
+    <p><b>What this version is.</b> A transparent rules engine that runs in your browser: no model, no server, no stored data. The strategy &amp; ops posting is Sela's own. The data science posting is a sample, and every demo candidate is synthetic except one real profile: the applicant's, scored by the same rules as everyone else. A production version would swap the matching step for a language model and keep the same rubric, quoting and decision rule.</p>
   </footer>
   </div>
 
   <div id="panelTracker" class="panel" role="tabpanel" aria-labelledby="tabTracker" hidden>
     <section aria-label="Choose a role">
       <div class="chips" id="roleChips"></div>
-      <div id="demoBar" class="demo-bar" hidden><span>This is a demo pipeline of synthetic candidates.</span><button id="clearDemo">Clear demo candidates</button></div>
+      <div id="demoBar" class="demo-bar" hidden><span>This is a demo pipeline. Every candidate is synthetic except the applicant's own profile.</span><button id="clearDemo">Clear demo candidates</button></div>
     </section>
 
     <section id="overviewSec" aria-labelledby="h-overview">
@@ -364,13 +365,17 @@ button.danger { color: var(--bad); border-color: var(--bad); }
 (function (root) {
   const BUZZ = /passionate|results[- ]driven|synerg\w*|leverag\w*|cutting[- ]edge|proven track record|dynamic team|go[- ]getter|strong communicator|team player|detail[- ]oriented|perfectionist|as assigned|responsible for|data enthusiast|drive insights|deliver value|great fit|think outside/gi;
   const ACTION = /\b(built|designed|trained|led|caught|replaced|wrote|mentored|shipped|launched|owned?|ran|created|cut|reduced|increased|grew|automated|partnered|delivered|founded|analy[sz]ed|developed|implemented|onboarded|introduced|migrated|scaled|negotiated|hired|managed|audited|priced|built|set up|rebuilt|fixed|added)\b/i;
-  const METRIC = /\d+(?:[.,]\d+)*\s?(?:%|k\b|m\b|x\b|million|bn\b|calls|users|people|analysts|customers|hires|engineers|transcripts|weeks?|months?)|\b\d{1,3}(?:,\d{3})+\b|\b(?:two|three|four|five|six|seven|eight|nine|ten|dozen)\s+[a-z]+|\$\s?\d/i;
+  const METRIC = /\d+(?:[.,]\d+)*\s?(?:%|k\b|m\b|x\b|million|bn\b|calls|users|people|analysts|customers|hires|engineers|transcripts|stakeholders|clients|hours?|days?|weeks?|months?)|\b\d{1,3}(?:,\d{3})+\b|\b(?:two|three|four|five|six|seven|eight|nine|ten|dozen)\s+[a-z]+|\$\s?\d/i;
   const OUTCOME = /\b(cut|reduc\w*|increas\w*|grew|saved|improv\w*|replac\w*|lift\w*|caught|prevent\w*|doubl\w*|tripl\w*|halv\w*|now (?:required|used|uses)|used by|adopted|fixed)\b|\d+(?:\.\d+)?\s?%/i;
   const YEARS_RANGE = /\b((?:19|20)\d{2})\s*[–—-]\s*((?:19|20)\d{2}|present|now|current)\b/i;
-  const TEAM = /mentor\w*|coach\w*|onboarded|taught|trained (?:\w+ )?(?:new |junior )?(?:analysts|engineers|hires|people|staff|colleagues)|wrote (?:our|the|an?) [^.;]*(?:guide|playbook|docs?)|document\w*|partnered|with the [a-z ]+ team|cross[- ]functional|helped|unblock\w*|told the team|pair(?:ed)? with|code review|knowledge[- ]shar\w*|required reading/i;
+  const TEAM = /mentor\w*|coach\w*|onboarded|taught|trained (?:\w+ )?(?:new |junior )?(?:analysts|engineers|hires|people|staff|colleagues)|wrote (?:our|the|an?) [^.;]*(?:guide|playbook|docs?)|document\w*|partnered|with the [a-z ]+ team|cross[- ]functional|work(?:ed)? (?:directly |closely )?with (?:the )?(?:founders|ceo|team|engineers|clients)|helped|unblock\w*|told the team|pair(?:ed)? with|code review|knowledge[- ]shar\w*|required reading/i;
 
   // Requirement concepts. jd = how a job description phrases it; cv = what evidence of it looks like.
   const CONCEPTS = [
+    { id: "background", presence: true, name: "Consulting, finance or startup background", jd: /consult\w*|years out of school|investment bank\w*|in finance|venture[- ]backed|operating role/gi, cv: /consult\w*|bank\w*|private equity|venture|startup|founder'?s analyst|\banalyst\b|operations|chief of staff|investment/i },
+    { id: "ai_fluency", name: "Hands-on with AI tools", jd: /\bai tools\b|fluent with ai|built something|build ai|ai agents?|agents? to/gi, cv: /\bai\b|\bagents?\b|\bllms?\b|claude|chatgpt|\bgpt|automat\w*|prompt\w*/i },
+    { id: "people", name: "Exceptional with people", jd: /exceptional with people|great with people|people skills|come away thinking|relationships?/gi, cv: /\bstakeholders?\b|\bclients?\b|\bcustomers?\b|\bcandidates?\b|\binvestors?\b|\bfounders?\b|\bceo\b|\bexecutives?\b|\bboard\b|\bworkshops?\b|negotiat\w*|relationships?|present\w* to|every decline|leave people/i },
+    { id: "agency", name: "High agency", jd: /high[- ]agency|hungry|don[’']t wait|make it happen|self[- ]starter/gi, cv: /\bfounded\b|\bstarted\b|\bbuilt\b|\blaunched\b|set up|from scratch|without being asked|side project|so i built|i built/i },
     { id: "experimentation", name: "Experiment design & statistics", jd: /a\/b|experiment|statistic|causal|hypothesis test/gi, cv: /a\/b|a\/a|experiment|statistic|sequential test|significan|novelty effect|causal|control group|holdout/i },
     { id: "production_ml", name: "Production data science / ML", jd: /production|shipp?\w* (?:models?|analyses)|deploy\w*|machine learning|\bml\b/gi, cv: /production|deploy\w*|shipped|\bmodels?\b|classifier|forecast\w*|propensity/i },
     { id: "python_sql", name: "Python & SQL", jd: /python|\bsql\b/gi, cv: /python|\bsql\b|bigquery|pandas|pytorch|spark|snowflake|\bdbt\b|scikit/i },
@@ -386,7 +391,10 @@ button.danger { color: var(--bad); border-color: var(--bad); }
     // These two map onto the fixed hiring values, so they never become separate must-haves.
     { id: "communication", fixed: true, jd: /\bwrit\w*|communicat\w*|explain\w*|present\w*/gi },
     { id: "team_player", fixed: true, jd: /collaborat\w*|team player|low[- ]ego/gi },
+    { id: "intelligence", fixed: true, jd: /intellectually curious|curious|fast to learn|learn\w* quickly|pick up new/gi },
+    { id: "logistics", fixed: true, jd: /in office|on-?site|days a week (?:in|together)|relocat\w*/gi },
   ];
+  const SKIP_WHY = { communication: "covered by Communication", team_player: "covered by Team player", intelligence: "covered by Intelligence", logistics: "logistics: confirm on the first call" };
 
   const FIXED = [
     { id: "intelligence", name: "Intelligence", question: "Do they solve hard, ambiguous problems and learn fast?",
@@ -417,16 +425,18 @@ button.danger { color: var(--bad); border-color: var(--bad); }
     const raw = text.split(/\r?\n/).map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim());
     const title = raw[0] && raw[0].length < 80 ? stripBullet(raw[0]) : "this role";
     let section = "";
-    const bullets = [];
+    const lines = [];
     for (const l of raw.slice(1)) {
       const t = l.trim();
       if (!isBullet(t) && t.length < 60 && !/[.!]$/.test(t)) { section = t; continue; }
-      if (isBullet(t)) bullets.push({ text: stripBullet(t), section });
+      lines.push({ text: stripBullet(t), section, bullet: isBullet(t) });
     }
     const reqSection = /look|require|qualif|you have|you bring|about you|must|who you are|what we need|you'll need|skills/i;
     const reqCue = /experience|years|fluent|strong|proficien|ability|track record|degree|comfortable|you (?:have|know|write)/i;
-    let pool = bullets.filter((b) => reqSection.test(b.section));
-    if (!pool.length) pool = bullets.filter((b) => reqCue.test(b.text));
+    // Lines under a "must-have" heading come first, then the rest of the requirement sections.
+    const inReq = lines.filter((b) => reqSection.test(b.section));
+    let pool = [...inReq.filter((b) => /must/i.test(b.section)), ...inReq.filter((b) => !/must/i.test(b.section))];
+    if (!pool.length) pool = lines.filter((b) => b.bullet && reqCue.test(b.text));
 
     const mustHaves = [], skipped = [];
     for (const b of pool) {
@@ -434,11 +444,11 @@ button.danger { color: var(--bad); border-color: var(--bad); }
       const hits = CONCEPTS.map((c) => ({ c, n: countMatches(c.jd, b.text) })).filter((h) => h.n > 0).sort((a, z) => z.n - a.n);
       const top = hits[0] && hits[0].c;
       if (nice) { skipped.push({ text: b.text, why: "nice-to-have" }); continue; }
-      if (top && top.fixed) { skipped.push({ text: b.text, why: `covered by ${top.id === "communication" ? "Communication" : "Team player"}` }); continue; }
-      const yrs = (b.text.match(/(\d+)\s*\+?\s*(?:years|yrs)/i) || [])[1];
+      if (top && top.fixed) { skipped.push({ text: b.text, why: SKIP_WHY[top.id] }); continue; }
+      const yrs = (b.text.match(/(\d+)\s*(?:[–—-]\s*\d+\s*|\+\s*)?(?:years|yrs)/i) || [])[1];
       let axis;
       if (top) {
-        axis = { id: top.id, name: top.name, cv: top.cv, concept: top.id };
+        axis = { id: top.id, name: top.name, cv: top.cv, concept: top.id, presence: !!top.presence };
       } else {
         const words = (b.text.toLowerCase().match(/[a-z][a-z&/+-]{3,}/g) || []).filter((w) => !STOP.has(w));
         const keys = [...new Set(words)].slice(0, 6);
@@ -487,7 +497,7 @@ button.danger { color: var(--bad); border-color: var(--bad); }
         for (const s of body.split(/(?<=[.!?])\s+/)) if (s.trim()) lines.push({ text: s.trim(), section, kind: "answer" });
         continue;
       }
-      lines.push({ text: clean, section, kind: section === "skills" ? "skill" : "line" });
+      lines.push({ text: clean, section, kind: section === "skills" ? "skill" : "line", bullet: isBullet(t) });
     }
     // Years of experience from role date ranges, overlaps merged.
     const now = new Date().getFullYear();
@@ -506,16 +516,19 @@ button.danger { color: var(--bad); border-color: var(--bad); }
 
   // ---------- Scoring ----------
   function scoreMustHave(axis, c) {
-    const pool = c.lines.filter((l) => l.kind !== "role");
+    const pool = c.lines.filter((l) => axis.presence || l.kind !== "role");
     const test = axis.cv
       ? (t) => axis.cv.test(t)
       : (t) => { const lt = t.toLowerCase(); const hits = axis.keys.filter((k) => lt.includes(k.slice(0, 5))).length; return hits >= Math.min(2, axis.keys.length); };
     const matched = pool.filter((l) => test(l.text));
-    const real = matched.filter((l) => l.kind !== "skill" && l.section !== "summary");
+    const real = matched.filter((l) => l.kind !== "skill" && l.section !== "summary" && (axis.presence ? l.kind === "role" || (l.section === "experience" && !l.bullet) : true));
     let score, reason;
     if (!matched.length) { score = 1; reason = "No line in the application mentions this."; }
     else if (!real.length) { score = 2; reason = "Only listed as a skill or in the summary, with no work behind it."; }
-    else {
+    else if (axis.presence) {
+      score = real.length >= 2 ? 4 : 3;
+      reason = `${real.length} role${real.length > 1 ? "s" : ""} in this kind of setting.`;
+    } else {
       const top = Math.max(...real.map((l) => l.strength));
       const solid = real.filter((l) => l.strength >= 2).length;
       score = top >= 3 ? 4 : top === 2 ? 3 : 2;
@@ -523,7 +536,7 @@ button.danger { color: var(--bad); border-color: var(--bad); }
       score = Math.min(5, score);
       reason = `${real.length} line${real.length > 1 ? "s" : ""} show${real.length > 1 ? "" : "s"} it; the strongest ${top >= 2 ? "has" : "lacks"} a number or outcome.`;
     }
-    if (axis.years && c.years < axis.years && score > 2) {
+    if (axis.years && c.roles.length && c.years < axis.years && score > 2) {
       score = 2;
       reason += ` Capped at 2: about ${c.years} year${c.years === 1 ? "" : "s"} of dated experience against ${axis.years}+ asked.`;
     }
@@ -638,6 +651,29 @@ button.danger { color: var(--bad); border-color: var(--bad); }
       ["Tell me about a hire that didn't work out. What would you screen for now?", "Honesty and a concrete change to the process."],
     ],
   };
+  Object.assign(BANK, {
+    people: [
+      ["Tell me about a time you turned someone down. How did they feel about it afterwards, and how do you know?", "Care in the delivery and a sign the relationship survived."],
+      ["Who is the most difficult stakeholder you've won over? What changed their mind?", "They understood what the other person needed, not just what they wanted."],
+      ["A strong candidate has two offers and goes quiet. What do you do this week?", "A specific plan to understand their decision and make Sela's case honestly."],
+    ],
+    ai_fluency: [
+      ["Show me something you've built with AI. What does it do that you couldn't do without it?", "A working thing, a clear user, and an honest view of where it fails."],
+      ["Which part of your current job have you automated, and what still needs a person?", "A real workflow, the time saved, and a sensible line on what stays human."],
+      ["When has an AI tool given you a confident wrong answer? How did you catch it?", "A habit of checking outputs against ground truth."],
+    ],
+    background: [
+      ["Walk me through a problem where you had to get to a good answer fast with bad data.", "A clear structure, the shortcuts they took, and how they checked them."],
+      ["What did your last role teach you about how a business actually makes money?", "Specific mechanics: unit economics, sales motion or cost drivers."],
+      ["Tell me about a recommendation you made that wasn't adopted. What would you do differently?", "Ownership, and a better read of the decision-maker."],
+    ],
+    agency: [
+      ["Tell me about something you started that nobody asked you to.", "They saw the gap, acted without permission, and finished it."],
+      ["What's the last time you were blocked? What did you do on day two?", "They found another route instead of waiting."],
+      ["If you joined on Monday with the hiring plan as your problem, what would you have done by Friday?", "A concrete first week that ends with something shipped."],
+    ],
+  });
+
   function genericBank(name) {
     const n = name.replace(/\s*\(\d+\+ yrs\)/, "").toLowerCase();
     return [
@@ -696,6 +732,10 @@ button.danger { color: var(--bad); border-color: var(--bad); }
 
   // ---------- Onboarding ----------
   const WEEK = {
+    background: ["Build the hiring model", ["Turn the 12-month headcount plan into a monthly funnel by role: sourced, screened, interviewed, offered", "Agree the stage targets with the CEO"]],
+    ai_fluency: ["Ship a first agent", ["Map the hiring workflow and find the step that takes the most hours", "Ship an agent for that step, with a person approving every output"]],
+    people: ["Own the candidate experience", ["Sit in on five candidate conversations and write down what every candidate should leave feeling", "Rewrite the advance and decline templates the team uses"]],
+    agency: ["Pick the next bottleneck", ["List the three biggest hiring bottlenecks, with evidence for each", "Fix one of them end to end"]],
     experimentation: ["Own one live A/B test", ["Review the design of the current agent-against-human test", "Write up one result with confidence intervals for the team"]],
     production_ml: ["Ship a first model change", ["Run the current model and its evaluation end to end", "Ship one small, reviewed improvement"]],
     python_sql: ["Get fluent in the data", ["Rebuild one core metric from raw tables", "Document three data quirks found on the way"]],
@@ -734,6 +774,7 @@ button.danger { color: var(--bad); border-color: var(--bad); }
       ["Agent evaluation system", "Hiring manager", "Day 2"],
     ];
     if (data) checklist.push(["Read access to the data warehouse", "Engineering lead", "Day 2"]);
+    if (must.some((a) => ["people", "ai_fluency", "background", "recruiting"].includes(a.concept))) checklist.push(["Admin access to the applicant tracking system", "Hiring manager", "Day 1"]);
     const roleLine = c.roles[0] ? c.roles[0].text.replace(YEARS_RANGE, "").replace(/\(.*?\)/g, "").replace(/[,\s–—-]+$/, "").trim() : "";
     const [jt, co] = roleLine.split(/\s*,\s*/);
     const first = c.name === "Candidate" ? "our new hire" : c.name.split(/\s+/)[0];
@@ -857,29 +898,29 @@ button.danger { color: var(--bad); border-color: var(--bad); }
   // Synthetic demo pipeline, dated relative to "now" so the overdue flags are live.
   function demo(now) {
     const ago = (d) => new Date(now - d * DAY).toISOString();
+    const OPS = "Founding Strategy & Operations Generalist", DS = "Founding Data Scientist";
     const rows = [
-      ["Maya Chen", "Founding Data Scientist", "Interview", 2, 4.83, "advance"],
-      ["Jordan Okafor", "Founding Data Scientist", "Screened", 6, 3.67, "human_review"],
-      ["Sam Patel", "Founding Data Scientist", "Declined", 1, 1.33, "decline", "Screened"],
-      ["Priya Raman", "Founding Data Scientist", "Applied", 1],
-      ["Lucas Ferreira", "Founding Data Scientist", "Applied", 4],
-      ["Hannah Weiss", "Founding Data Scientist", "Applied", 2],
-      ["Tomás Ortega", "Founding Data Scientist", "Interview", 7, 4.17, "advance"],
-      ["Grace Liu", "Founding Data Scientist", "Offer", 2, 4.5, "advance"],
-      ["Daniel Brooks", "Founding Data Scientist", "Declined", 9, 2.17, "decline", "Interview"],
-      ["Aisha Bello", "AI Product Manager", "Applied", 5],
-      ["Owen Gallagher", "AI Product Manager", "Applied", 1],
-      ["Mei Tanaka", "AI Product Manager", "Screened", 2, 3.5, "human_review"],
-      ["Rafael Costa", "AI Product Manager", "Screened", 4, 4.0, "advance"],
-      ["Elena Petrova", "AI Product Manager", "Interview", 3, 4.33, "advance"],
-      ["Noah Kim", "AI Product Manager", "Declined", 6, 2.0, "decline", "Screened"],
-      ["Chloe Martin", "Customer Success Lead", "Applied", 2],
-      ["Ibrahim Yusuf", "Customer Success Lead", "Interview", 1, 3.83, "advance"],
-      ["Sofia Rossi", "Customer Success Lead", "Offer", 5, 4.17, "advance"],
-      ["Ben Carter", "Customer Success Lead", "Hired", 12, 4.67, "advance"],
+      ["Jake Makking-Robinson", OPS, "Applied", 0],
+      ["Alex Morgan", OPS, "Screened", 4, 3.29, "human_review"],
+      ["Casey Nolan", OPS, "Declined", 1, 1.43, "decline", "Screened"],
+      ["Nadia Haddad", OPS, "Applied", 1],
+      ["Marcus Bell", OPS, "Applied", 5],
+      ["Leah Goldberg", OPS, "Applied", 2],
+      ["Kenji Watanabe", OPS, "Interview", 6, 4.0, "advance"],
+      ["Olivia Grant", OPS, "Interview", 2, 3.86, "advance"],
+      ["Diego Alvarez", OPS, "Declined", 8, 2.71, "decline", "Interview"],
+      ["Maya Chen", DS, "Interview", 2, 4.83, "advance"],
+      ["Jordan Okafor", DS, "Screened", 6, 3.67, "human_review"],
+      ["Sam Patel", DS, "Declined", 1, 1.33, "decline", "Screened"],
+      ["Priya Raman", DS, "Applied", 1],
+      ["Lucas Ferreira", DS, "Applied", 4],
+      ["Hannah Weiss", DS, "Applied", 2],
+      ["Tomás Ortega", DS, "Interview", 7, 4.17, "advance"],
+      ["Grace Liu", DS, "Offer", 2, 4.5, "advance"],
+      ["Daniel Brooks", DS, "Declined", 9, 2.17, "decline", "Interview"],
     ];
     return rows.map(([name, role, stage, d, mean, suggestion, declinedFrom], i) => ({
-      id: "demo-" + i, name, role, stage, moved: ago(d), added: ago(d + 3), mean: mean ?? null, suggestion: suggestion ?? null, demo: true,
+      id: "demo-" + i, name, role, stage, moved: ago(d), added: ago(d + 3), mean: mean ?? null, suggestion: suggestion ?? null, demo: true, real: name === "Jake Makking-Robinson",
       ...(declinedFrom ? { declinedFrom } : {}),
     }));
   }
@@ -891,11 +932,108 @@ button.danger { color: var(--bad); border-color: var(--bad); }
 </script>
 
 <script id="demo">
-// Demo inputs, all synthetic. SAMPLE_JD is a stand-in for Sela's Founding Data Scientist posting:
-// swap in the live text from trysela.com/careers before sending the link.
+// Demo inputs. Two roles: Sela's live strategy & ops posting, and a sample data science posting
+// (a stand-in, swap in the live text from trysela.com/careers). Every candidate is synthetic except
+// one real profile, marked real: true.
 window.DEMO = {
-  jdIsSample: true,
-  jd: `Founding Data Scientist
+  roles: [
+    {
+      id: "ops", label: "Founding Strategy & Operations Generalist", jdIsSample: false,
+      jd: `Founding Strategy & Operations Generalist
+
+ABOUT SELA
+Sela is the market leading AI voice agent for mortgage lenders. Since we started in mid 2024, we have since signed 6 of the 10 largest independent mortgage banks in the US as enterprise customers. We went from ~$0 to $13M annualized revenue over the past 20 months, and we currently make around 600k calls a day. Product-market fit is a crazy feeling, and the next 12 months will be even crazier.
+We’re far and away the market leader in our space. In the very near future, most mortgages will be originated by AI; we are in the best position of anyone in the market to do it. If we’re successful, we will eventually make everyone’s mortgage 1% cheaper, and we will make an enduring and valuable company along the way.
+We’ve raised $21M across our Seed and Series A from Emergence and Costanoa.
+
+THE ROLE
+You'll be the first strategy and operations hire at Sela. You'll report to the CEO and get pointed at whatever the hardest problem in the company is at the time.
+Right now that's hiring. We're tripling the team in a year without lowering the bar, which makes recruiting the highest-leverage system we have. You'll own who we should be targeting, how we reach them, how we evaluate them quickly and fairly, how we close the ones we want.
+From there you'll take on more of the business. Which parts depends on what we need and what you're drawn to — sales, product, finance, people.
+
+WHAT YOU'LL OWN
+Hiring Strategy. Who are the right candidates? How do we get them in the door? How do we evaluate candidates fairly and efficiently? How do we sell and close top talent?
+Automation. You'll build AI tools and agents to take as much of this off humans as possible, with as many tokens as you can spend and engineering support when you need it. If you like the idea of figuring out how to get an agent to do 80% of your job so you can go solve the next problem, you'll like it here.
+Whatever's next. A new revenue motion, a pricing model, a finance function. The scope of this role is set by how much you can handle.
+
+WHAT WE'RE LOOKING FOR
+2–4 years out of school, spent at a top consulting firm, in finance, or in an operating role at a fast-paced, venture-backed startup
+Hungry and high-agency. You don't wait for instructions. You see what needs to happen, figure out how to do it, and make it happen.
+Intellectually curious and fast to learn. You want to understand how a business actually works and you pick up new domains quickly.
+Must-haves:
+Exceptional with people. Everyone who talks to you should come away thinking more of Sela, whether or not we hire them.
+Genuinely fluent with AI tools. Not just enthusiastic — you already use them every day and you've built something yourself.
+Excited about working four days a week in office in San Francisco
+
+BENEFITS
+$130k-175k base + generous equity
+Top-of-market medical, dental, and vision coverage for you and your dependents
+401(k) with a top-of-market employer match
+Unlimited PTO
+Hybrid in-office schedule: four days a week together in SF, with a flexible remote day on Wednesdays`,
+      candidates: [
+        { id: "jake", label: "Jake (real)", real: true, text: `Jake Makking-Robinson (real profile: the person who built this page)
+
+EXPERIENCE
+Founder's Analyst, MyEdSpace (UK edtech startup)
+- Work directly with the founders on commercial and operating problems, from first-principles analysis to building the fix.
+- Ship production tools and AI agents alongside the commercial work, using SQL, Next.js, Supabase and Claude.
+Management consulting, Nous Group (Perth)
+- Strategy and operations work for clients, from structuring the problem to the final recommendation.
+Finance and analytics, early-stage sustainability startup
+
+PROJECTS
+- Built this screening and onboarding desk for Sela's strategy & ops role: rubric, quoted evidence, interview kit, candidate replies, onboarding pack and a pipeline tracker, all running in the browser.
+- Built a GPU unit-economics model comparing buy, lease and rent-in per GPU-hour, with live marketplace and power-price inputs refreshed every 6 hours.
+- Built a live treasury dashboard on ECB rates that ranks currencies by how unusual each 30-day move is for that currency, not by raw size.
+- Built a Mandarin spaced-repetition app (mandarinflashcards.pages.dev) because no existing tool drilled HSK vocab the way I wanted.
+
+EDUCATION
+Master in Management, INSEAD
+BCom, University of Western Australia
+
+APPLICATION ANSWERS
+Why this role? You're hiring someone to build the hiring machine and hand 80% of it to agents. I'd rather show that than claim it, so I built a first version of the system and screened myself with it.
+What would you automate first? First-pass screening and candidate replies, because they eat recruiter hours and every decline still has to leave people thinking well of Sela. A person keeps the final call and the close.` },
+        { id: "ops-mid", label: "Borderline", text: `Alex Morgan (synthetic candidate)
+
+EXPERIENCE
+Associate, Bramwell Partners (strategy consulting), 2023–present
+- Built a pricing model for a retail client that the CFO used to set next year's prices.
+- Ran weekly workshops with 12 client stakeholders across finance and operations.
+- Use ChatGPT daily for research summaries and first drafts of client slides.
+- Built a spreadsheet macro that automated the weekly client status report; saved the team 4 hours a week.
+
+EDUCATION
+BA Economics, University of Michigan, 2023
+
+APPLICATION ANSWERS
+Why this role? I want to move from advising on outcomes to owning them at a fast-growing startup.
+Tell us about a result you got wrong. A market-sizing model double-counted one segment. I caught it in review and rebuilt the bottom-up view before it went to the client.` },
+        { id: "ops-weak", label: "Weak", text: `Casey Nolan (synthetic candidate)
+
+SUMMARY
+Passionate, results-driven self-starter and strong communicator who loves leveraging cutting-edge AI to drive synergies.
+
+EXPERIENCE
+Business Intern, Various Companies, 2024–2025
+- Assisted with various projects as assigned.
+- Responsible for research and reporting tasks.
+
+EDUCATION
+BBA, 2024
+
+SKILLS
+AI, ChatGPT, Leadership, Teamwork, Communication
+
+APPLICATION ANSWERS
+Why this role? I am passionate about AI and startups and believe I would be a great fit for your dynamic team.
+Tell us about a result you got wrong. I am a perfectionist so I always double check my work.` },
+      ],
+    },
+    {
+      id: "ds", label: "Founding Data Scientist", jdIsSample: true,
+      jd: `Founding Data Scientist
 
 We build AI voice agents that handle borrower calls for mortgage lenders: refinance outreach, application follow-up and servicing questions. Our agents already run alongside human teams at some of the largest independent mortgage banks in the US, and every agent change is A/B tested against human performance.
 
@@ -913,8 +1051,8 @@ What we're looking for
 - You write clearly and can explain a result to a customer as well as to an engineer.
 
 San Francisco, in office 4 days a week (Wednesdays remote).`,
-  candidates: [
-    { id: "strong", label: "Strong", text: `Maya Chen (synthetic candidate)
+      candidates: [
+        { id: "strong", label: "Strong", text: `Maya Chen (synthetic candidate)
 
 EXPERIENCE
 Senior Data Scientist, Lumen Voice (contact-centre speech analytics), 2022–present
@@ -934,7 +1072,7 @@ APPLICATION ANSWERS
 Why this role? I've spent four years making voice systems measurable, and two years before that inside a lender. Your problem, proving an agent is as good as a loan officer, is the exact intersection.
 
 Tell us about a result you got wrong. Early on I reported a 9% lift in call resolution that turned out to be a logging change. I now run an A/A test before every launch, and I told the team about the mistake the same day.` },
-    { id: "borderline", label: "Borderline", text: `Jordan Okafor (synthetic candidate)
+        { id: "borderline", label: "Borderline", text: `Jordan Okafor (synthetic candidate)
 
 EXPERIENCE
 Analytics Lead, Brightpath Insurance, 2021–present
@@ -956,7 +1094,7 @@ APPLICATION ANSWERS
 Why this role? I want to move from reporting into building models, and voice AI for lending looks like a big opportunity where I can learn fast.
 
 Tell us about a result you got wrong. A dashboard double-counted claims for a month because of a join. I fixed the query and added a row-count check.` },
-    { id: "weak", label: "Weak", text: `Sam Patel (synthetic candidate)
+        { id: "weak", label: "Weak", text: `Sam Patel (synthetic candidate)
 
 SUMMARY
 Passionate, results-driven data enthusiast and strong communicator with a proven track record of leveraging cutting-edge AI to drive synergies and deliver value.
@@ -977,6 +1115,8 @@ APPLICATION ANSWERS
 Why this role? I am passionate about AI and believe I would be a great fit for your dynamic team.
 
 Tell us about a result you got wrong. I am a perfectionist so I always double check my work.` },
+      ],
+    },
   ],
 };
 </script>
@@ -989,17 +1129,34 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
   const LABEL = { advance: "Suggest: advance", human_review: "Suggest: human review", decline: "Suggest: decline" };
   const state = { rubric: null, screen: null, decision: null };
 
-  $("jd").value = D.jd;
-  $("jdBadge").hidden = !D.jdIsSample;
-  $("jd").addEventListener("input", () => { $("jdBadge").hidden = true; });
+  let demoRole = D.roles[0];
+  const markChip = (id) => $("chips").querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.id === id));
+  const markRole = (id) => $("roleDemo").querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.id === id));
 
-  const markChip = (id) => document.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.id === id));
-  for (const c of D.candidates) {
-    const b = document.createElement("button");
-    b.className = "chip"; b.dataset.id = c.id; b.textContent = c.label;
-    b.addEventListener("click", () => { $("cand").value = c.text; markChip(c.id); run(); });
-    $("chips").appendChild(b);
+  function loadRole(role) {
+    demoRole = role;
+    markRole(role.id);
+    $("jd").value = role.jd;
+    $("jdBadge").hidden = false;
+    $("jdBadge").textContent = role.jdIsSample ? "sample posting" : "Sela's posting";
+    $("jdBadge").className = `badge ${role.jdIsSample ? "sample" : "advance"}`;
+    $("chips").innerHTML = `<span class="hint">Demo candidates:</span>`;
+    for (const c of role.candidates) {
+      const b = document.createElement("button");
+      b.className = "chip"; b.dataset.id = c.id; b.textContent = c.label;
+      b.addEventListener("click", () => { $("cand").value = c.text; markChip(c.id); run(); });
+      $("chips").appendChild(b);
+    }
+    $("cand").value = role.candidates[0].text;
+    markChip(role.candidates[0].id);
   }
+  for (const r of D.roles) {
+    const b = document.createElement("button");
+    b.className = "chip"; b.dataset.id = r.id; b.textContent = r.label;
+    b.addEventListener("click", () => { loadRole(r); compareAll(false); });
+    $("roleDemo").appendChild(b);
+  }
+  $("jd").addEventListener("input", () => { $("jdBadge").hidden = true; markRole(null); });
   $("cand").addEventListener("input", () => markChip(null));
 
   function showError(msg) { $("err").hidden = !msg; $("err").textContent = msg || ""; }
@@ -1080,12 +1237,12 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
       state.rubric = rubricFor($("jd").value.trim());
       renderRubric(state.rubric);
       const axes = new Map(state.rubric.axes.map((a) => [a.id, a]));
-      const rows = D.candidates.map((c) => [c, S.screen(state.rubric, c.text)]);
+      const rows = demoRole.candidates.map((c) => [c, S.screen(state.rubric, c.text)]);
       $("compare").innerHTML = "";
       for (const [c, s] of rows) {
         const tr = document.createElement("tr");
         tr.className = "pick"; tr.tabIndex = 0;
-        tr.innerHTML = `<td><b>${esc(s.candidate_name)}</b> <span class="hint">${esc(c.label.toLowerCase())}, synthetic</span></td><td>${s.suggestion.mean.toFixed(2)}</td><td><span class="badge ${s.suggestion.decision}">${LABEL[s.suggestion.decision]}</span></td><td>${esc(axes.get(s.weakest_axis_id).name)}</td>`;
+        tr.innerHTML = `<td><b>${esc(s.candidate_name)}</b> <span class="hint">${c.real ? "real profile" : esc(c.label.toLowerCase()) + ", synthetic"}</span></td><td>${s.suggestion.mean.toFixed(2)}</td><td><span class="badge ${s.suggestion.decision}">${LABEL[s.suggestion.decision]}</span></td><td>${esc(axes.get(s.weakest_axis_id).name)}</td>`;
         const open = () => { $("cand").value = c.text; markChip(c.id); showScreen(s); $("screenSec").scrollIntoView({ behavior: "smooth", block: "start" }); };
         tr.addEventListener("click", open);
         tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
@@ -1095,7 +1252,7 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
       const cur = rows.find(([c]) => c.text === $("cand").value) || rows[0];
       markChip(cur[0].id); $("cand").value = cur[0].text;
       showScreen(cur[1]);
-      $("status").textContent = "Three candidates screened. Click a row to open one.";
+      $("status").textContent = `${rows.length} candidates screened for ${state.rubric.role_title}. Click a row to open one.`;
       if (scroll) $("compareSec").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) { showError(e.message); }
   }
@@ -1125,7 +1282,7 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
 
   // ---------- Tracker ----------
   const T = window.Tracker;
-  const KEY = "screening-desk-tracker-v1";
+  const KEY = "screening-desk-tracker-v2";
   const LABEL_SHORT = { advance: "advance", human_review: "human review", decline: "decline" };
   const trk = { items: [], role: "all", armed: null };
   function load() {
@@ -1198,7 +1355,7 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
       const late = T.active(c) && d > T.TARGET_DAYS[c.stage];
       const screenCell = c.suggestion ? `<span class="badge ${c.suggestion}">${LABEL_SHORT[c.suggestion]}</span> ${Number(c.mean).toFixed(2)}` : `<span class="hint">not screened</span>`;
       const armed = trk.armed === c.id;
-      return `<tr><td><b>${esc(c.name)}</b>${c.demo ? '<span class="tagline">synthetic</span>' : ""}${c.stage === "Declined" ? `<span class="tagline">declined at ${esc(c.declinedFrom || "Applied")}</span>` : ""}</td>
+      return `<tr><td><b>${esc(c.name)}</b>${c.demo ? `<span class="tagline">${c.real ? "real profile" : "synthetic"}</span>` : ""}${c.stage === "Declined" ? `<span class="tagline">declined at ${esc(c.declinedFrom || "Applied")}</span>` : ""}</td>
         <td class="c-role">${esc(c.role)}</td><td>${stageCell(c)}</td><td>${screenCell}</td>
         <td class="${late ? "late" : ""}">${d}${late ? " · overdue" : ""}</td>
         <td><button class="${armed ? "danger" : "link"}" data-remove="${esc(c.id)}">${armed ? "Confirm remove" : "Remove"}</button></td></tr>`;
@@ -1256,9 +1413,9 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
   if (location.hash === "#tracker") setTab("tracker");
 
   // Open in a working state: the demo range, with the strong candidate on screen.
-  $("cand").value = D.candidates[0].text;
+  loadRole(D.roles[0]);
   compareAll(false);
-  $("status").textContent = "Showing the three demo candidates. Paste your own to screen them.";
+  $("status").textContent = "Showing the demo candidates for this role. Paste your own to screen them.";
 })();
 </script>
 </body>

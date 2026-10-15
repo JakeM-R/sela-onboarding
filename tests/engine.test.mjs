@@ -11,19 +11,25 @@ vm.createContext(ctx);
 vm.runInContext(script("engine") + script("demo"), ctx);
 const { Screen: S, DEMO } = ctx.window;
 
-const rubric = S.buildRubric(DEMO.jd);
-const run = Object.fromEntries(DEMO.candidates.map((c) => [c.id, S.screen(rubric, c.text)]));
+const [OPS, DS] = DEMO.roles;
+const rubric = S.buildRubric(DS.jd);
+const run = Object.fromEntries(DS.candidates.map((c) => [c.id, S.screen(rubric, c.text)]));
+const opsRubric = S.buildRubric(OPS.jd);
+const opsRun = Object.fromEntries(OPS.candidates.map((c) => [c.id, S.screen(opsRubric, c.text)]));
 
 test("rubric keeps real must-haves and skips nice-to-haves and the writing line", () => {
   const must = rubric.axes.filter((a) => a.kind === "must_have");
   assert.equal(must.length, 3);
   assert.equal(must.map((a) => a.id).join(","), "production_ml,experimentation,python_sql");
   assert.equal(must[0].years, 3);
-  assert.equal(rubric.skipped.length, 2);
+  assert.equal(rubric.skipped.length, 3); // LLM plus, the writing line, and the in-office line
 });
 
 test("every quote is copied verbatim from the candidate text", () => {
-  for (const c of DEMO.candidates) for (const s of run[c.id].scores) for (const e of s.evidence) assert.ok(c.text.includes(e.text), e.text);
+  for (const role of DEMO.roles) {
+    const r = S.buildRubric(role.jd);
+    for (const c of role.candidates) for (const s of S.screen(r, c.text).scores) for (const e of s.evidence) assert.ok(c.text.includes(e.text), e.text);
+  }
 });
 
 test("demo range: strong advances, borderline goes to a person, weak is declined", () => {
@@ -32,6 +38,20 @@ test("demo range: strong advances, borderline goes to a person, weak is declined
   assert.equal(run.weak.suggestion.decision, "decline");
   assert.ok(run.strong.suggestion.mean > run.borderline.suggestion.mean);
   assert.ok(run.borderline.suggestion.mean > run.weak.suggestion.mean);
+});
+
+test("Sela's strategy & ops posting: four must-haves, office attendance treated as logistics", () => {
+  const must = opsRubric.axes.filter((a) => a.kind === "must_have");
+  assert.equal(opsRubric.role_title, "Founding Strategy & Operations Generalist");
+  assert.equal(must.map((a) => a.id).join(","), "people,ai_fluency,background,agency");
+  assert.equal(must.find((a) => a.id === "background").years, 2); // "2–4 years" reads as at least 2
+  assert.ok(opsRubric.skipped.some((x) => /logistics/.test(x.why) && /four days a week/.test(x.text)));
+});
+
+test("strategy & ops demo range: borderline goes to a person, weak is declined", () => {
+  assert.equal(opsRun["ops-mid"].suggestion.decision, "human_review");
+  assert.equal(opsRun["ops-weak"].suggestion.decision, "decline");
+  assert.ok(opsRun["ops-mid"].suggestion.mean > opsRun["ops-weak"].suggestion.mean);
 });
 
 test("five distinct interview questions, at least two on the weakest axis", () => {
@@ -77,14 +97,15 @@ const NOW = Date.parse("2026-10-15T12:00:00Z");
 test("demo pipeline covers three roles and flags overdue candidates", () => {
   const items = T.demo(NOW);
   const roles = T.roles(items, NOW);
-  assert.equal(roles.length, 3);
+  assert.equal(roles.length, 2);
   const ds = roles.find((r) => r.role === "Founding Data Scientist");
   assert.equal(ds.inProcess, 7);
   const od = T.overdue(items, NOW).map((c) => c.name);
   assert.ok(od.includes("Jordan Okafor"));   // 6 days in Screened, target 3
   assert.ok(od.includes("Tomás Ortega"));    // 7 days in Interview, target 5
   assert.ok(!od.includes("Maya Chen"));      // 2 days in Interview
-  assert.ok(!od.includes("Ben Carter"));     // hired, never overdue
+  assert.ok(od.includes("Marcus Bell"));     // 5 days in Applied, target 3
+  assert.ok(!od.includes("Jake Makking-Robinson"));
 });
 
 test("funnel counts who reached each stage, including people declined later", () => {
