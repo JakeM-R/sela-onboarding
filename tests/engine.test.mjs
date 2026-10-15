@@ -105,19 +105,19 @@ test("demo pipeline covers three roles and flags overdue candidates", () => {
   const roles = T.roles(items, NOW);
   assert.equal(roles.length, 2);
   const apm = roles.find((r) => r.role === "Associate Product Manager");
-  assert.equal(apm.inProcess, 7);
+  assert.equal(apm.inProcess, 5);
   const od = T.overdue(items, NOW).map((c) => c.name);
-  assert.ok(od.includes("Ethan Park"));      // 6 days in Screened, target 3
-  assert.ok(od.includes("Tomás Ortega"));    // 7 days in Interview, target 5
-  assert.ok(!od.includes("Ava Thompson"));   // 2 days in Interview
-  assert.ok(od.includes("Marcus Bell"));     // 5 days in Applied, target 3
+  assert.ok(od.includes("Synthetic 9"));      // 6 days in Screened, target 3
+  assert.ok(od.includes("Synthetic 11"));    // 7 days in Interview, target 5
+  assert.ok(!od.includes("Synthetic 8"));   // 2 days in Interview
+  assert.ok(od.includes("Synthetic 6"));     // 5 days in Applied, target 3
   assert.ok(!od.includes("Jake Makking-Robinson"));
 });
 
 test("funnel counts who reached each stage, including people declined later", () => {
   const f = T.funnel(T.demo(NOW).filter((c) => c.role === "Associate Product Manager"));
-  assert.equal(f.map((r) => r.reached).join(","), "9,6,4,1,0");
-  assert.equal(Math.round(f[2].conversion * 100), 67);
+  assert.equal(f.map((r) => r.reached).join(","), "6,5,3,1,0");
+  assert.equal(Math.round(f[2].conversion * 100), 60);
 });
 
 test("moving to Declined remembers the stage, moving back clears it", () => {
@@ -132,6 +132,21 @@ test("CSV escapes quotes and has a header row", () => {
   const out = T.csv([{ name: 'Ann "AJ" Lee', role: "R", stage: "Applied", moved: new Date(NOW).toISOString() }], NOW);
   assert.ok(out.startsWith('"Name","Role"'));
   assert.ok(out.includes('"Ann ""AJ"" Lee"'));
+});
+
+test("synthetic candidates are named Synthetic 1 to 13, the real profile keeps its name", () => {
+  const demoNames = T.demo(NOW).map((c) => c.name).filter((n) => n !== "Jake Makking-Robinson");
+  assert.equal(demoNames.length, 13);
+  assert.equal([...new Set(demoNames)].sort((a, b) => a.localeCompare(b, "en", { numeric: true })).join(","), Array.from({ length: 13 }, (_, i) => `Synthetic ${i + 1}`).join(","));
+  for (const role of DEMO.roles) for (const c of role.candidates) {
+    const name = S.parseCandidate(c.text).name;
+    assert.ok(c.real ? name === "Jake Makking-Robinson" : /^Synthetic \d+$/.test(name), name);
+  }
+  assert.ok(run["apm-strong"].messages.advance.body.startsWith("Hi Synthetic 8,"));
+});
+
+test("the reply praises a work line, never an answer about a mistake", () => {
+  for (const r of [...Object.values(run), ...Object.values(opsRun)]) assert.ok(!/got wrong|only 2 accounts|double-counted/.test(r.messages.advance.body), r.messages.advance.body);
 });
 
 test("welcome message names the real title and company", () => {
