@@ -16,17 +16,27 @@ Built by Jake Makking-Robinson. A working draft, not a Sela product. All demo da
 6. **Reply:** drafts both an advance and a decline. The decline names one real strength from the application. The reviewer picks.
 7. **Onboarding, on "hire":** a 30-day plan tied to the must-haves, an access checklist (Slack, GitHub, the eval system, and call recordings after compliance training), a first week with Wednesday remote, and a welcome message to the team.
 
-It opens with three synthetic candidates (strong, borderline, weak) already compared, so the whole range shows on first load.
+It has two demo roles, both from Sela's own postings. **Founding Strategy & Operations Generalist** has the applicant's real profile (from their resume, contact details left out) alongside a borderline and a weak synthetic candidate. **Associate Product Manager** has three synthetic candidates (strong, borderline, weak). Each role opens already compared, so the whole range shows on first load.
+
+## Pipeline tracker
+
+The second tab tracks candidates per role through Applied → Screened → Interview → Offer → Hired, with Declined recorded against the stage it happened at.
+
+- **All roles:** one row per role with counts at each stage and how many are overdue.
+- **Per role:** a funnel of how many candidates reached each stage and the conversion between stages, a "needs attention" list of anyone past their stage's target (Applied 3 days, Screened 3, Interview 5, Offer 3), and the candidate list with a stage picker.
+- **Add to tracker** on the screen tab sends the screened candidate into their role's pipeline with the score and suggestion. It never moves someone backwards. Candidates can also be added by hand.
+- **Copy as CSV** puts the current view on the clipboard for a spreadsheet.
+- It opens with a synthetic demo pipeline across three roles, with a button to clear it. Data is saved in the viewer's browser only (localStorage), so nothing is sent anywhere and each person sees their own copy.
 
 ## Files
 
-- `public/index.html`: the whole app. The scoring engine is the `<script id="engine">` block; demo inputs are in `<script id="demo">`.
+- `public/index.html`: the whole app. The scoring engine is the `<script id="engine">` block, tracker logic is `<script id="tracker-core">`, and demo inputs are in `<script id="demo">`.
 - `tests/engine.test.mjs`: runs the engine under Node (`npm test`, no dependencies). Checks the demo range, that every quote is verbatim, the question and message rules, and the onboarding pack.
 - `.github/workflows/deploy.yml`: on every push to `main`, runs the tests and publishes `public/` to GitHub Pages.
 
 ## Before sending the link
 
-- [ ] Replace the sample posting in `<script id="demo">` with the live text of Sela's Founding Data Scientist (or AI PM) posting from trysela.com/careers, and set `jdIsSample: false`. The current text is a stand-in written for the demo.
+- [ ] Read the two application answers in the real profile (`<script id="demo">`) and rewrite them in your own words if needed.
 - [ ] Run `npm test`, then open the live page on desktop and phone.
 
 ## Run locally

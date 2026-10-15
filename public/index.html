@@ -46,6 +46,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--font-ui); }
 .wrap {
   max-width: 1060px; margin: 0 auto;
@@ -136,7 +137,40 @@ details summary { cursor: pointer; font-weight: 600; }
 .days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 footer { font-size: 13px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 6px; }
 footer p { margin: 0; max-width: 90ch; }
+/* Tabs and tracker */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 10px 14px; color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tabs .count { font-weight: 500; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.panel { display: grid; gap: 36px; min-width: 0; }
+.demo-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--warn-soft); color: var(--ink); padding: 10px 14px; border-radius: var(--radius); font-size: 14px; }
+.funnel { display: grid; gap: 10px; }
+.frow { display: grid; grid-template-columns: 88px 1fr 104px; gap: 10px; align-items: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+.frow .track { height: 14px; background: var(--surface); border-radius: 0 4px 4px 0; }
+.frow .bar { height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; min-width: 2px; }
+.frow .val { color: var(--ink-2); }
+.frow .val b { color: var(--ink); }
+.attn { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+.attn li { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.attn .who { font-weight: 600; }
+.attn .meta { color: var(--ink-3); font-size: 13px; margin-left: auto; }
+.trk td, .trk th, .roles td, .roles th { font-variant-numeric: tabular-nums; }
+.trk select, .addform select, .addform input {
+  font: 14px var(--font-ui); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px;
+}
+.trk td { vertical-align: middle; }
+.trk.one-role .c-role { display: none; }
+.trk .late { color: var(--warn); font-weight: 600; }
+.trk .tagline { display: block; font-size: 12px; color: var(--ink-3); }
+.roles tr.pick { cursor: pointer; }
+.roles tr.pick:hover td, .roles tr.pick:focus-visible td { background: var(--surface); }
+button.link { border: 0; padding: 0; background: none; color: var(--accent); text-decoration: underline; font-weight: 500; }
+button.danger { color: var(--bad); border-color: var(--bad); }
+.addform { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.addform label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.empty { color: var(--ink-3); font-size: 14px; }
 @media (max-width: 760px) {
+  .frow { grid-template-columns: 72px 1fr 92px; }
   .wrap { padding-block: 24px 56px; gap: 28px; }
   header h1 { font-size: 24px; }
   .grid, .two { grid-template-columns: 1fr; }
@@ -163,22 +197,29 @@ footer p { margin: 0; max-width: 90ch; }
 
   <div class="time"><b>Under a second per candidate</b><span>against an estimated 20–30 minutes to read, score and reply by hand. It drafts; a person makes every decision. Nothing you paste leaves this page.</span></div>
 
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button role="tab" id="tabScreen" aria-selected="true" aria-controls="panelScreen">Screen a candidate</button>
+    <button role="tab" id="tabTracker" aria-selected="false" aria-controls="panelTracker">Pipeline tracker <span class="count" id="trackerCount"></span></button>
+  </nav>
+
+  <div id="panelScreen" class="panel" role="tabpanel" aria-labelledby="tabScreen">
   <section aria-labelledby="h-inputs">
     <h2 id="h-inputs">1 · Inputs</h2>
+    <div class="chips" id="roleDemo"><span class="hint">Demo role:</span></div>
     <div class="grid">
       <div>
-        <label class="field" for="jd">Job description <span id="jdBadge" class="badge sample">sample posting</span></label>
+        <label class="field" for="jd">Job description <span id="jdBadge" class="badge sample"></span></label>
         <textarea id="jd" spellcheck="false"></textarea>
       </div>
       <div>
         <label class="field" for="cand">Candidate CV and application answers</label>
-        <div class="chips" id="chips"><span class="hint">Demo candidates, all synthetic:</span></div>
+        <div class="chips" id="chips"></div>
         <textarea id="cand" spellcheck="false" placeholder="Paste a CV and any application answers as plain text."></textarea>
       </div>
     </div>
     <div class="actions">
       <button class="primary" id="run">Screen candidate</button>
-      <button id="runAll">Compare all three demo candidates</button>
+      <button id="runAll">Compare this role's demo candidates</button>
       <span class="status" id="status" role="status" aria-live="polite"></span>
     </div>
     <div id="err" class="error" hidden></div>
@@ -232,6 +273,8 @@ footer p { margin: 0; max-width: 90ch; }
         <pre class="msg" id="msg"></pre>
         <div class="actions">
           <button id="copyMsg">Copy message</button>
+          <button id="track">Add to tracker</button>
+          <span class="status" id="trackMsg" role="status" aria-live="polite"></span>
           <button class="primary" id="hire">Mark as hired → onboarding</button>
         </div>
       </div>
@@ -263,22 +306,78 @@ footer p { margin: 0; max-width: 90ch; }
 
   <footer>
     <p><b>How it scores.</b> The three hiring-value axes and their 1/3/5 anchors are fixed. Must-haves are the requirement lines in the job description, minus nice-to-haves and anything the values already cover. A score rises with lines that show an action, a number and an outcome, and falls with buzzwords. Every quote is copied from the pasted text, never written. The suggestion is a fixed rule: any must-have at 2 or below suggests decline.</p>
-    <p><b>What this version is.</b> A transparent rules engine that runs in your browser: no model, no server, no stored data. The demo candidates and the sample posting are synthetic. A production version would swap the matching step for a language model and keep the same rubric, quoting and decision rule.</p>
+    <p><b>What this version is.</b> A transparent rules engine that runs in your browser: no model, no server, no stored data. Both postings are Sela's own. Every demo candidate is synthetic except one real profile, the applicant's, which is scored by the same rules as everyone else. A production version would swap the matching step for a language model and keep the same rubric, quoting and decision rule.</p>
   </footer>
+  </div>
+
+  <div id="panelTracker" class="panel" role="tabpanel" aria-labelledby="tabTracker" hidden>
+    <section aria-label="Choose a role">
+      <div class="chips" id="roleChips"></div>
+      <div id="demoBar" class="demo-bar" hidden><span>This is a demo pipeline. Every candidate is synthetic except the applicant's own profile.</span><button id="clearDemo">Clear demo candidates</button></div>
+    </section>
+
+    <section id="overviewSec" aria-labelledby="h-overview">
+      <h2 id="h-overview">All roles</h2>
+      <div class="card" style="padding:0">
+        <div class="tablebox">
+          <table class="roles"><thead><tr><th>Role</th><th>In process</th><th>Applied</th><th>Screened</th><th>Interview</th><th>Offer</th><th>Hired</th><th>Overdue</th></tr></thead><tbody id="rolesBody"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-pipe">
+      <h2 id="h-pipe">Pipeline</h2>
+      <div class="two">
+        <div class="card">
+          <h2>Funnel: candidates who reached each stage</h2>
+          <div class="funnel" id="funnel"></div>
+        </div>
+        <div class="card">
+          <h2>Needs attention</h2>
+          <ul class="attn" id="attention"></ul>
+          <p class="hint" style="margin:0">Overdue means longer in a stage than its target: Applied 3 days, Screened 3, Interview 5, Offer 3.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="headline"><h2>Candidates</h2><button id="copyCsv">Copy as CSV</button></div>
+        <div class="tablebox">
+          <table class="trk"><thead><tr><th>Candidate</th><th class="c-role">Role</th><th>Stage</th><th>Screen</th><th>Days in stage</th><th></th></tr></thead><tbody id="trkBody"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-add">
+      <h2 id="h-add">Add a candidate by hand</h2>
+      <form class="card addform" id="addForm">
+        <label for="addName">Name<input id="addName" required autocomplete="off"></label>
+        <label for="addRole">Role<input id="addRole" list="roleList" required autocomplete="off"></label>
+        <datalist id="roleList"></datalist>
+        <label for="addStage">Stage<select id="addStage"></select></label>
+        <button class="primary" type="submit">Add candidate</button>
+      </form>
+      <p class="hint" style="margin:0">The tracker saves to this browser only. Nothing is sent anywhere, and other people opening the link see their own copy.</p>
+    </section>
+  </div>
 </div>
 
 <script id="engine">
 // Screening engine. Pure functions, no network. Exposed as window.Screen (and module.exports for tests).
 (function (root) {
   const BUZZ = /passionate|results[- ]driven|synerg\w*|leverag\w*|cutting[- ]edge|proven track record|dynamic team|go[- ]getter|strong communicator|team player|detail[- ]oriented|perfectionist|as assigned|responsible for|data enthusiast|drive insights|deliver value|great fit|think outside/gi;
-  const ACTION = /\b(built|designed|trained|led|caught|replaced|wrote|mentored|shipped|launched|owned?|ran|created|cut|reduced|increased|grew|automated|partnered|delivered|founded|analy[sz]ed|developed|implemented|onboarded|introduced|migrated|scaled|negotiated|hired|managed|audited|priced|built|set up|rebuilt|fixed|added)\b/i;
-  const METRIC = /\d+(?:[.,]\d+)*\s?(?:%|k\b|m\b|x\b|million|bn\b|calls|users|people|analysts|customers|hires|engineers|transcripts|weeks?|months?)|\b\d{1,3}(?:,\d{3})+\b|\b(?:two|three|four|five|six|seven|eight|nine|ten|dozen)\s+[a-z]+|\$\s?\d/i;
-  const OUTCOME = /\b(cut|reduc\w*|increas\w*|grew|saved|improv\w*|replac\w*|lift\w*|caught|prevent\w*|doubl\w*|tripl\w*|halv\w*|now (?:required|used|uses)|used by|adopted|fixed)\b|\d+(?:\.\d+)?\s?%/i;
-  const YEARS_RANGE = /\b((?:19|20)\d{2})\s*[–—-]\s*((?:19|20)\d{2}|present|now|current)\b/i;
-  const TEAM = /mentor\w*|coach\w*|onboarded|taught|trained (?:\w+ )?(?:new |junior )?(?:analysts|engineers|hires|people|staff|colleagues)|wrote (?:our|the|an?) [^.;]*(?:guide|playbook|docs?)|document\w*|partnered|with the [a-z ]+ team|cross[- ]functional|helped|unblock\w*|told the team|pair(?:ed)? with|code review|knowledge[- ]shar\w*|required reading/i;
+  const ACTION = /\b(built|designed|trained|led|caught|replaced|wrote|mentored|shipped|launched|owned?|ran|created|cut|reduced|increased|grew|automated|partnered|delivered|founded|analy[sz]ed|developed|implemented|onboarded|introduced|migrated|scaled|negotiated|hired|managed|audited|priced|set up|rebuilt|fixed|added|drove|produced|authored|stood up|prioriti[sz]ed|quantified|verified|refined|analy[sz]ed|presented|triaged|wrote)\b/i;
+  const METRIC = /\d+(?:[.,]\d+)*\s?(?:%|k\b|m\b|x\b|million|bn\b|calls|users|people|analysts|customers|hires|engineers|transcripts|stakeholders|clients|hours?|days?|weeks?|months?)|\b\d{1,3}(?:,\d{3})+\b|\b(?:two|three|four|five|six|seven|eight|nine|ten|dozen)\s+[a-z]+|\$\s?\d|\b\d[\d,]*\+?\s+[a-zé]+s\b/i;
+  const OUTCOME = /\b(cut|reduc\w*|increas\w*|grew|saved|improv\w*|replac\w*|lift\w*|caught|prevent\w*|doubl\w*|tripl\w*|halv\w*|now (?:required|used|uses)|used by|adopted|fixed|successful|wins?|promoted|avoided|handles|resolves)\b|\d+(?:\.\d+)?\s?%/i;
+  const YEARS_RANGE = /\b((?:19|20)\d{2})\s*[–—-]\s*(?:[A-Za-z]+\.?\s+)?((?:19|20)\d{2}|present|now|current)\b/i;
+  const TEAM = /mentor\w*|coach\w*|onboarded|taught|trained (?:\w+ )?(?:new |junior )?(?:analysts|engineers|hires|people|staff|colleagues)|wrote (?:our|the|an?) [^.;]*(?:guide|playbook|docs?)|document\w*|partnered|with the [a-z ]+ team|cross[- ]functional|contribut\w* to|work(?:ed)? (?:directly |closely )?with (?:the )?(?:founders|ceo|team|engineers|clients)|helped|unblock\w*|told the team|pair(?:ed)? with|code review|knowledge[- ]shar\w*|required reading/i;
 
   // Requirement concepts. jd = how a job description phrases it; cv = what evidence of it looks like.
   const CONCEPTS = [
+    { id: "background", presence: true, name: "Consulting, finance or startup background", jd: /consult\w*|years out of school|investment bank\w*|in finance|venture[- ]backed|operating role/gi, cv: /consult\w*|bank\w*|private equity|venture|startup|founder[’']?s analyst|founder[’']?s associate|\banalyst\b|operations|chief of staff|investment/i },
+    { id: "ai_fluency", name: "AI fluency", jd: /\bai tools\b|fluent with ai|built something|build ai|ai agents?|agents? to|curiosity about ai|built agents/gi, cv: /\bai\b|\bagents?\b|\bllms?\b|claude|chatgpt|\bgpt|automat\w*|prompt\w*/i },
+    { id: "people", name: "Exceptional with people", jd: /exceptional with people|great with people|people skills|come away thinking|relationships?/gi, cv: /\bstakeholders?\b|\bclients?\b|\bcustomers?\b|\bcandidates?\b|\binvestors?\b|\bfounders?\b|\bceo\b|\bexecutives?\b|\bboard\b|\bworkshops?\b|negotiat\w*|relationships?|present\w* to|every decline|leave people/i },
+    { id: "agency", name: "High agency", jd: /high[- ]agency|hungry|don[’']t wait|make it happen|self[- ]starter/gi, cv: /\bfounded\b|\bstarted\b|\bbuilt\b|\blaunched\b|set up|from scratch|without being asked|side project|so i built|i built/i },
+    { id: "judgment", name: "Judgment about what matters", jd: /judg(?:e)?ment|what matters|more requests than time|prioriti[sz]\w*/gi, cv: /prioriti[sz]\w*|roadmap|trade-?offs?|said no|\bdecided\b|cut scope|backlog|triag\w*|instead of/i },
+    { id: "ambiguity", name: "Comfort with ambiguity and speed", jd: /ambigu\w*|unfamiliar problems?|figure (?:them|it) out|comfort with speed/gi, cv: /ambigu\w*|from scratch|unfamiliar|new market|first version|stood up|zero to one|0 to 1|within (?:a|one|two|\d+) (?:days?|weeks?)|in (?:two|three|\d+) weeks/i },
     { id: "experimentation", name: "Experiment design & statistics", jd: /a\/b|experiment|statistic|causal|hypothesis test/gi, cv: /a\/b|a\/a|experiment|statistic|sequential test|significan|novelty effect|causal|control group|holdout/i },
     { id: "production_ml", name: "Production data science / ML", jd: /production|shipp?\w* (?:models?|analyses)|deploy\w*|machine learning|\bml\b/gi, cv: /production|deploy\w*|shipped|\bmodels?\b|classifier|forecast\w*|propensity/i },
     { id: "python_sql", name: "Python & SQL", jd: /python|\bsql\b/gi, cv: /python|\bsql\b|bigquery|pandas|pytorch|spark|snowflake|\bdbt\b|scikit/i },
@@ -294,7 +393,10 @@ footer p { margin: 0; max-width: 90ch; }
     // These two map onto the fixed hiring values, so they never become separate must-haves.
     { id: "communication", fixed: true, jd: /\bwrit\w*|communicat\w*|explain\w*|present\w*/gi },
     { id: "team_player", fixed: true, jd: /collaborat\w*|team player|low[- ]ego/gi },
+    { id: "intelligence", fixed: true, jd: /intellectually curious|curious|fast to learn|learn\w* quickly|pick up new/gi },
+    { id: "logistics", fixed: true, jd: /in office|on-?site|days a week (?:in|together)|relocat\w*/gi },
   ];
+  const SKIP_WHY = { communication: "covered by Communication", team_player: "covered by Team player", intelligence: "covered by Intelligence", logistics: "logistics: confirm on the first call" };
 
   const FIXED = [
     { id: "intelligence", name: "Intelligence", question: "Do they solve hard, ambiguous problems and learn fast?",
@@ -325,16 +427,18 @@ footer p { margin: 0; max-width: 90ch; }
     const raw = text.split(/\r?\n/).map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim());
     const title = raw[0] && raw[0].length < 80 ? stripBullet(raw[0]) : "this role";
     let section = "";
-    const bullets = [];
+    const lines = [];
     for (const l of raw.slice(1)) {
       const t = l.trim();
       if (!isBullet(t) && t.length < 60 && !/[.!]$/.test(t)) { section = t; continue; }
-      if (isBullet(t)) bullets.push({ text: stripBullet(t), section });
+      lines.push({ text: stripBullet(t), section, bullet: isBullet(t) });
     }
     const reqSection = /look|require|qualif|you have|you bring|about you|must|who you are|what we need|you'll need|skills/i;
     const reqCue = /experience|years|fluent|strong|proficien|ability|track record|degree|comfortable|you (?:have|know|write)/i;
-    let pool = bullets.filter((b) => reqSection.test(b.section));
-    if (!pool.length) pool = bullets.filter((b) => reqCue.test(b.text));
+    // Lines under a "must-have" heading come first, then the rest of the requirement sections.
+    const inReq = lines.filter((b) => reqSection.test(b.section));
+    let pool = [...inReq.filter((b) => /must/i.test(b.section)), ...inReq.filter((b) => !/must/i.test(b.section))];
+    if (!pool.length) pool = lines.filter((b) => b.bullet && reqCue.test(b.text));
 
     const mustHaves = [], skipped = [];
     for (const b of pool) {
@@ -342,11 +446,11 @@ footer p { margin: 0; max-width: 90ch; }
       const hits = CONCEPTS.map((c) => ({ c, n: countMatches(c.jd, b.text) })).filter((h) => h.n > 0).sort((a, z) => z.n - a.n);
       const top = hits[0] && hits[0].c;
       if (nice) { skipped.push({ text: b.text, why: "nice-to-have" }); continue; }
-      if (top && top.fixed) { skipped.push({ text: b.text, why: `covered by ${top.id === "communication" ? "Communication" : "Team player"}` }); continue; }
-      const yrs = (b.text.match(/(\d+)\s*\+?\s*(?:years|yrs)/i) || [])[1];
+      if (top && top.fixed) { skipped.push({ text: b.text, why: SKIP_WHY[top.id] }); continue; }
+      const yrs = (b.text.match(/(\d+)\s*(?:[–—-]\s*\d+\s*|\+\s*)?(?:years|yrs)/i) || [])[1];
       let axis;
       if (top) {
-        axis = { id: top.id, name: top.name, cv: top.cv, concept: top.id };
+        axis = { id: top.id, name: top.name, cv: top.cv, concept: top.id, presence: !!top.presence };
       } else {
         const words = (b.text.toLowerCase().match(/[a-z][a-z&/+-]{3,}/g) || []).filter((w) => !STOP.has(w));
         const keys = [...new Set(words)].slice(0, 6);
@@ -388,14 +492,14 @@ footer p { margin: 0; max-width: 90ch; }
       const isHeader = headerRe.test(t) || (t.length < 40 && t === t.toUpperCase() && /[A-Z]{3}/.test(t));
       if (isHeader) { section = classify(t); continue; }
       const clean = stripBullet(t);
-      if (YEARS_RANGE.test(clean) && !isBullet(t) && clean.length < 140) { lines.push({ text: clean, section, kind: "role" }); continue; }
+      if (YEARS_RANGE.test(clean) && !isBullet(t) && clean.length < 140 && section !== "education") { lines.push({ text: clean, section, kind: "role" }); continue; }
       if (section === "answers") {
         const q = clean.indexOf("? ");
         const body = q > -1 && q < 90 ? clean.slice(q + 2) : clean;
         for (const s of body.split(/(?<=[.!?])\s+/)) if (s.trim()) lines.push({ text: s.trim(), section, kind: "answer" });
         continue;
       }
-      lines.push({ text: clean, section, kind: section === "skills" ? "skill" : "line" });
+      lines.push({ text: clean, section, kind: section === "skills" ? "skill" : "line", bullet: isBullet(t) });
     }
     // Years of experience from role date ranges, overlaps merged.
     const now = new Date().getFullYear();
@@ -414,16 +518,19 @@ footer p { margin: 0; max-width: 90ch; }
 
   // ---------- Scoring ----------
   function scoreMustHave(axis, c) {
-    const pool = c.lines.filter((l) => l.kind !== "role");
+    const pool = c.lines.filter((l) => axis.presence || l.kind !== "role");
     const test = axis.cv
       ? (t) => axis.cv.test(t)
       : (t) => { const lt = t.toLowerCase(); const hits = axis.keys.filter((k) => lt.includes(k.slice(0, 5))).length; return hits >= Math.min(2, axis.keys.length); };
     const matched = pool.filter((l) => test(l.text));
-    const real = matched.filter((l) => l.kind !== "skill" && l.section !== "summary");
+    const real = matched.filter((l) => l.kind !== "skill" && l.section !== "summary" && (axis.presence ? l.kind === "role" || (l.section === "experience" && !l.bullet) : true));
     let score, reason;
     if (!matched.length) { score = 1; reason = "No line in the application mentions this."; }
     else if (!real.length) { score = 2; reason = "Only listed as a skill or in the summary, with no work behind it."; }
-    else {
+    else if (axis.presence) {
+      score = real.length >= 2 ? 4 : 3;
+      reason = `${real.length} role${real.length > 1 ? "s" : ""} in this kind of setting.`;
+    } else {
       const top = Math.max(...real.map((l) => l.strength));
       const solid = real.filter((l) => l.strength >= 2).length;
       score = top >= 3 ? 4 : top === 2 ? 3 : 2;
@@ -431,7 +538,7 @@ footer p { margin: 0; max-width: 90ch; }
       score = Math.min(5, score);
       reason = `${real.length} line${real.length > 1 ? "s" : ""} show${real.length > 1 ? "" : "s"} it; the strongest ${top >= 2 ? "has" : "lacks"} a number or outcome.`;
     }
-    if (axis.years && c.years < axis.years && score > 2) {
+    if (axis.years && c.roles.length && c.years < axis.years && score > 2) {
       score = 2;
       reason += ` Capped at 2: about ${c.years} year${c.years === 1 ? "" : "s"} of dated experience against ${axis.years}+ asked.`;
     }
@@ -443,13 +550,13 @@ footer p { margin: 0; max-width: 90ch; }
     const s3 = pool.filter((l) => l.strength >= 3).length, s2 = pool.filter((l) => l.strength === 2).length;
     const score = s3 >= 3 ? 5 : s3 === 2 ? 4 : s3 === 1 || s2 >= 2 ? 3 : s2 === 1 ? 2 : 1;
     const reason = s3 + s2
-      ? `${s3} line${s3 === 1 ? "" : "s"} show an action, a number and an outcome together; ${s2} more show two of the three.`
+      ? `${s3} line${s3 === 1 ? " shows" : "s show"} an action, a number and an outcome together; ${s2} more show${s2 === 1 ? "s" : ""} two of the three.`
       : "No line pairs an action with a measurable result.";
     return { axis_id: "intelligence", score, evidence: best(pool.filter((l) => l.strength >= 1)), reasoning: reason };
   }
 
   function scoreCommunication(c, text) {
-    const exp = c.lines.filter((l) => l.kind === "line" && l.section !== "summary");
+    const exp = c.lines.filter((l) => l.kind === "line" && l.bullet && !["summary", "education", "skills"].includes(l.section));
     const ratio = exp.length ? exp.filter((l) => METRIC.test(l.text)).length / exp.length : 0;
     const buzzLines = c.lines.filter((l) => new RegExp(BUZZ.source, "i").test(l.text));
     const buzz = countMatches(BUZZ, text);
@@ -483,7 +590,7 @@ footer p { margin: 0; max-width: 90ch; }
     else if (claimed.length) score = 2;
     else score = 1;
     const reason = real.length
-      ? `${real.length} line${real.length > 1 ? "s" : ""} show them helping, teaching or working with others.`
+      ? `${real.length} line${real.length > 1 ? "s show" : " shows"} them helping, teaching or working with others.`
       : claimed.length ? "Claimed in a skills list or summary, with no example." : "No sign of anyone else in their work.";
     return { axis_id: "team_player", score, evidence: best(real.length ? real : claimed), reasoning: reason };
   }
@@ -546,6 +653,39 @@ footer p { margin: 0; max-width: 90ch; }
       ["Tell me about a hire that didn't work out. What would you screen for now?", "Honesty and a concrete change to the process."],
     ],
   };
+  Object.assign(BANK, {
+    judgment: [
+      ["You have ten requests from three lenders and time for two. Walk me through how you choose.", "A clear rule tied to impact on real calls, and an honest no to the rest."],
+      ["Tell me about something you decided not to build. How did you tell the person who asked?", "A reasoned no that kept the relationship."],
+      ["When have three separate asks turned out to be one missing feature?", "They spot the pattern and change the plan rather than building it three times."],
+    ],
+    ambiguity: [
+      ["Tell me about a problem you were dropped into with no context. What did you do in the first two days?", "Fast orientation: who to ask, what to read, and a first output."],
+      ["What's something you shipped before you felt ready? How did it go?", "Comfort acting on partial information, with a check afterwards."],
+      ["How do you decide when an agent change is good enough to go live on real calls?", "A test, a threshold and a rollback plan."],
+    ],
+    people: [
+      ["Tell me about a time you turned someone down. How did they feel about it afterwards, and how do you know?", "Care in the delivery and a sign the relationship survived."],
+      ["Who is the most difficult stakeholder you've won over? What changed their mind?", "They understood what the other person needed, not just what they wanted."],
+      ["A strong candidate has two offers and goes quiet. What do you do this week?", "A specific plan to understand their decision and make Sela's case honestly."],
+    ],
+    ai_fluency: [
+      ["Show me something you've built with AI. What does it do that you couldn't do without it?", "A working thing, a clear user, and an honest view of where it fails."],
+      ["Which part of your current job have you automated, and what still needs a person?", "A real workflow, the time saved, and a sensible line on what stays human."],
+      ["When has an AI tool given you a confident wrong answer? How did you catch it?", "A habit of checking outputs against ground truth."],
+    ],
+    background: [
+      ["Walk me through a problem where you had to get to a good answer fast with bad data.", "A clear structure, the shortcuts they took, and how they checked them."],
+      ["What did your last role teach you about how a business actually makes money?", "Specific mechanics: unit economics, sales motion or cost drivers."],
+      ["Tell me about a recommendation you made that wasn't adopted. What would you do differently?", "Ownership, and a better read of the decision-maker."],
+    ],
+    agency: [
+      ["Tell me about something you started that nobody asked you to.", "They saw the gap, acted without permission, and finished it."],
+      ["What's the last time you were blocked? What did you do on day two?", "They found another route instead of waiting."],
+      ["If you joined on Monday with the hiring plan as your problem, what would you have done by Friday?", "A concrete first week that ends with something shipped."],
+    ],
+  });
+
   function genericBank(name) {
     const n = name.replace(/\s*\(\d+\+ yrs\)/, "").toLowerCase();
     return [
@@ -604,6 +744,12 @@ footer p { margin: 0; max-width: 90ch; }
 
   // ---------- Onboarding ----------
   const WEEK = {
+    judgment: ["Own the request queue", ["Triage every open request for your lenders into build, batch or decline", "Write up one case where three asks are really one missing feature"]],
+    ambiguity: ["Ship a first agent change", ["Take one change from request to live calls, through evals and simulations", "Write the post-launch note: what changed on real calls"]],
+    background: ["Build the hiring model", ["Turn the 12-month headcount plan into a monthly funnel by role: sourced, screened, interviewed, offered", "Agree the stage targets with the CEO"]],
+    ai_fluency: ["Ship a first agent", ["Map the hiring workflow and find the step that takes the most hours", "Ship an agent for that step, with a person approving every output"]],
+    people: ["Own the candidate experience", ["Sit in on five candidate conversations and write down what every candidate should leave feeling", "Rewrite the advance and decline templates the team uses"]],
+    agency: ["Pick the next bottleneck", ["List the three biggest hiring bottlenecks, with evidence for each", "Fix one of them end to end"]],
     experimentation: ["Own one live A/B test", ["Review the design of the current agent-against-human test", "Write up one result with confidence intervals for the team"]],
     production_ml: ["Ship a first model change", ["Run the current model and its evaluation end to end", "Ship one small, reviewed improvement"]],
     python_sql: ["Get fluent in the data", ["Rebuild one core metric from raw tables", "Document three data quirks found on the way"]],
@@ -642,8 +788,17 @@ footer p { margin: 0; max-width: 90ch; }
       ["Agent evaluation system", "Hiring manager", "Day 2"],
     ];
     if (data) checklist.push(["Read access to the data warehouse", "Engineering lead", "Day 2"]);
-    const roleLine = c.roles[0] ? c.roles[0].text.replace(YEARS_RANGE, "").replace(/\(.*?\)/g, "").replace(/[,\s–—-]+$/, "").trim() : "";
-    const [jt, co] = roleLine.split(/\s*,\s*/);
+    if (must.some((a) => ["people", "background", "recruiting"].includes(a.concept))) checklist.push(["Admin access to the applicant tracking system", "Hiring manager", "Day 1"]);
+    if (must.some((a) => ["ai_fluency", "judgment", "ambiguity"].includes(a.concept))) checklist.push(["Cursor and Claude Code seats", "Engineering lead", "Day 1"]);
+    // Title and company from the first dated role. Some CVs put the company on a line above the title.
+    const MONTH_RANGE = /,?\s*(?:[A-Za-z]+\.?\s+)?(?:19|20)\d{2}\s*[–—-].*$/;
+    const roleLine = c.roles[0] ? c.roles[0].text.replace(MONTH_RANGE, "").replace(/\(.*?\)/g, "").replace(/[,\s–—-]+$/, "").trim() : "";
+    let [jt, co] = roleLine.split(/\s*,\s*/);
+    if (jt && !co) {
+      const at = c.lines.indexOf(c.roles[0]);
+      const above = c.lines.slice(0, at).reverse().find((l) => !l.bullet && l.kind === "line" && /,/.test(l.text));
+      if (above) co = above.text.split(/\s*,\s*/)[0];
+    }
     const first = c.name === "Candidate" ? "our new hire" : c.name.split(/\s+/)[0];
     const fact = [...scores].filter((s) => s.evidence.length && !s.evidenceIsNegative).sort((a, b) => b.score - a.score)[0];
     const welcome = [
@@ -710,93 +865,307 @@ footer p { margin: 0; max-width: 90ch; }
 })(typeof window !== "undefined" ? window : globalThis);
 </script>
 
+<script id="tracker-core">
+// Pipeline tracker logic. Pure functions over a list of candidate records.
+(function (root) {
+  const STAGES = ["Applied", "Screened", "Interview", "Offer", "Hired"];
+  const ALL = [...STAGES, "Declined"];
+  const TARGET_DAYS = { Applied: 3, Screened: 3, Interview: 5, Offer: 3 };
+  const DAY = 86400000;
+  const daysIn = (c, now) => Math.max(0, Math.floor((now - Date.parse(c.moved)) / DAY));
+  const reachedIndex = (c) => (c.stage === "Declined" ? STAGES.indexOf(c.declinedFrom || "Applied") : STAGES.indexOf(c.stage));
+  const active = (c) => c.stage !== "Hired" && c.stage !== "Declined";
+
+  function funnel(items) {
+    const reached = STAGES.map((_, i) => items.filter((c) => reachedIndex(c) >= i).length);
+    return STAGES.map((stage, i) => ({
+      stage,
+      reached: reached[i],
+      now: items.filter((c) => c.stage === stage).length,
+      conversion: i === 0 || !reached[i - 1] ? null : reached[i] / reached[i - 1],
+    }));
+  }
+
+  function overdue(items, now) {
+    return items
+      .filter((c) => active(c) && daysIn(c, now) > TARGET_DAYS[c.stage])
+      .map((c) => ({ ...c, days: daysIn(c, now), over: daysIn(c, now) - TARGET_DAYS[c.stage] }))
+      .sort((a, b) => b.over - a.over);
+  }
+
+  function roles(items, now) {
+    const names = [...new Set(items.map((c) => c.role))].sort();
+    return names.map((role) => {
+      const r = items.filter((c) => c.role === role);
+      const count = (st) => r.filter((c) => c.stage === st).length;
+      return { role, inProcess: r.filter(active).length, Applied: count("Applied"), Screened: count("Screened"), Interview: count("Interview"), Offer: count("Offer"), Hired: count("Hired"), overdue: overdue(r, now).length };
+    });
+  }
+
+  function move(c, stage, now) {
+    if (stage === c.stage) return c;
+    const next = { ...c, stage, moved: new Date(now).toISOString() };
+    if (stage === "Declined") next.declinedFrom = c.stage === "Declined" ? c.declinedFrom : c.stage;
+    else delete next.declinedFrom;
+    return next;
+  }
+
+  function csv(items, now) {
+    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [["Name", "Role", "Stage", "Days in stage", "Screen mean", "Screen suggestion"]];
+    for (const c of items) rows.push([c.name, c.role, c.stage === "Declined" ? `Declined (at ${c.declinedFrom || "Applied"})` : c.stage, daysIn(c, now), c.mean ?? "", c.suggestion ?? ""]);
+    return rows.map((r) => r.map(q).join(",")).join("\n");
+  }
+
+  // Synthetic demo pipeline, dated relative to "now" so the overdue flags are live.
+  function demo(now) {
+    const ago = (d) => new Date(now - d * DAY).toISOString();
+    const OPS = "Founding Strategy & Operations Generalist", APM = "Associate Product Manager";
+    const rows = [
+      ["Jake Makking-Robinson", OPS, "Screened", 0, 4.43, "advance"],
+      ["Alex Morgan", OPS, "Screened", 4, 3.29, "human_review"],
+      ["Casey Nolan", OPS, "Declined", 1, 1.43, "decline", "Screened"],
+      ["Nadia Haddad", OPS, "Applied", 1],
+      ["Marcus Bell", OPS, "Applied", 5],
+      ["Leah Goldberg", OPS, "Applied", 2],
+      ["Kenji Watanabe", OPS, "Interview", 6, 4.0, "advance"],
+      ["Olivia Grant", OPS, "Interview", 2, 3.86, "advance"],
+      ["Diego Alvarez", OPS, "Declined", 8, 2.71, "decline", "Interview"],
+      ["Ava Thompson", APM, "Interview", 2, 3.83, "advance"],
+      ["Ethan Park", APM, "Screened", 6, 3.33, "human_review"],
+      ["Morgan Reyes", APM, "Declined", 1, 1.33, "decline", "Screened"],
+      ["Priya Raman", APM, "Applied", 1],
+      ["Lucas Ferreira", APM, "Applied", 4],
+      ["Hannah Weiss", APM, "Applied", 2],
+      ["Tomás Ortega", APM, "Interview", 7, 4.17, "advance"],
+      ["Grace Liu", APM, "Offer", 2, 4.5, "advance"],
+      ["Daniel Brooks", APM, "Declined", 9, 2.17, "decline", "Interview"],
+    ];
+    return rows.map(([name, role, stage, d, mean, suggestion, declinedFrom], i) => ({
+      id: "demo-" + i, name, role, stage, moved: ago(d), added: ago(d + 3), mean: mean ?? null, suggestion: suggestion ?? null, demo: true, real: name === "Jake Makking-Robinson",
+      ...(declinedFrom ? { declinedFrom } : {}),
+    }));
+  }
+
+  const api = { STAGES, ALL, TARGET_DAYS, daysIn, funnel, overdue, roles, move, csv, demo, active };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  root.Tracker = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+
 <script id="demo">
-// Demo inputs, all synthetic. SAMPLE_JD is a stand-in for Sela's Founding Data Scientist posting:
-// swap in the live text from trysela.com/careers before sending the link.
+// Demo inputs: two of Sela's live postings. Every candidate is synthetic except one real
+// profile (the applicant's, marked real: true).
 window.DEMO = {
-  jdIsSample: true,
-  jd: `Founding Data Scientist
+  roles: [
+    {
+      id: "ops", label: "Founding Strategy & Operations Generalist", jdIsSample: false,
+      jd: `Founding Strategy & Operations Generalist
 
-We build AI voice agents that handle borrower calls for mortgage lenders: refinance outreach, application follow-up and servicing questions. Our agents already run alongside human teams at some of the largest independent mortgage banks in the US, and every agent change is A/B tested against human performance.
+ABOUT SELA
+Sela is the market leading AI voice agent for mortgage lenders. Since we started in mid 2024, we have since signed 6 of the 10 largest independent mortgage banks in the US as enterprise customers. We went from ~$0 to $13M annualized revenue over the past 20 months, and we currently make around 600k calls a day. Product-market fit is a crazy feeling, and the next 12 months will be even crazier.
+We’re far and away the market leader in our space. In the very near future, most mortgages will be originated by AI; we are in the best position of anyone in the market to do it. If we’re successful, we will eventually make everyone’s mortgage 1% cheaper, and we will make an enduring and valuable company along the way.
+We’ve raised $21M across our Seed and Series A from Emergence and Costanoa.
 
-What you'll do
-- Own how we measure agent quality: design the evaluation system that scores calls for accuracy, compliance and borrower outcomes.
-- Design and analyse A/B tests comparing agent variants against each other and against human loan officers.
-- Build the data pipelines and models that turn millions of call transcripts into product decisions.
-- Work directly with engineering and customers to decide what to build next.
+THE ROLE
+You'll be the first strategy and operations hire at Sela. You'll report to the CEO and get pointed at whatever the hardest problem in the company is at the time.
+Right now that's hiring. We're tripling the team in a year without lowering the bar, which makes recruiting the highest-leverage system we have. You'll own who we should be targeting, how we reach them, how we evaluate them quickly and fairly, how we close the ones we want.
+From there you'll take on more of the business. Which parts depends on what we need and what you're drawn to — sales, product, finance, people.
 
-What we're looking for
-- 3+ years of hands-on data science or ML in production, shipping models or analyses that changed a product.
-- Strong experimental design and statistics: you know when an A/B test result is real.
-- Fluent in Python and SQL, comfortable working with messy, large-scale text or audio data.
-- Experience evaluating LLMs or conversational systems is a strong plus.
-- You write clearly and can explain a result to a customer as well as to an engineer.
+WHAT YOU'LL OWN
+Hiring Strategy. Who are the right candidates? How do we get them in the door? How do we evaluate candidates fairly and efficiently? How do we sell and close top talent?
+Automation. You'll build AI tools and agents to take as much of this off humans as possible, with as many tokens as you can spend and engineering support when you need it. If you like the idea of figuring out how to get an agent to do 80% of your job so you can go solve the next problem, you'll like it here.
+Whatever's next. A new revenue motion, a pricing model, a finance function. The scope of this role is set by how much you can handle.
 
-San Francisco, in office 4 days a week (Wednesdays remote).`,
-  candidates: [
-    { id: "strong", label: "Strong", text: `Maya Chen (synthetic candidate)
+WHAT WE'RE LOOKING FOR
+2–4 years out of school, spent at a top consulting firm, in finance, or in an operating role at a fast-paced, venture-backed startup
+Hungry and high-agency. You don't wait for instructions. You see what needs to happen, figure out how to do it, and make it happen.
+Intellectually curious and fast to learn. You want to understand how a business actually works and you pick up new domains quickly.
+Must-haves:
+Exceptional with people. Everyone who talks to you should come away thinking more of Sela, whether or not we hire them.
+Genuinely fluent with AI tools. Not just enthusiastic — you already use them every day and you've built something yourself.
+Excited about working four days a week in office in San Francisco
 
-EXPERIENCE
-Senior Data Scientist, Lumen Voice (contact-centre speech analytics), 2022–present
-- Built the call-quality evaluation pipeline used to grade 40,000 calls a week; replaced a manual QA sample of 2% of calls.
-- Designed the A/B testing framework for our LLM-based call summariser; caught a novelty effect that would have shipped a variant that lost 6% accuracy after week two.
-- Trained an intent classifier on 3M transcribed calls (Python, PyTorch, BigQuery); cut misrouted calls by 18%.
-- Mentored two junior analysts; wrote our internal guide to sequential testing, now required reading for new hires.
+BENEFITS
+$130k-175k base + generous equity
+Top-of-market medical, dental, and vision coverage for you and your dependents
+401(k) with a top-of-market employer match
+Unlimited PTO
+Hybrid in-office schedule: four days a week together in SF, with a flexible remote day on Wednesdays`,
+      candidates: [
+        { id: "jake", label: "Jake (real)", real: true, text: `Jake Makking-Robinson (real profile: the person who built this page)
+US work authorization: E-3 visa eligible (Australian citizen), no lottery and not subject to the H-1B cap
 
-Data Scientist, Northwind Lending, 2020–2022
-- Built the prepayment model used by the capital markets team to price refinance offers.
-- Partnered with compliance to audit model inputs for fair-lending risk.
+PROFESSIONAL EXPERIENCE
+MyEdSpace, London, United Kingdom
+UK and US edtech startup
+Founder’s Analyst (Strategy & Operations), February 2026 - Present
+- Produced a full GTM plan for a proposed US market entry (SAT exam prep), covering positioning, pricing, sales motion and creative; presented to founders
+- Designed and built an AI customer support agent, iteratively refining its prompts, classification and escalation logic against live tickets; handles ~60% of inbound requests, absorbing ticket growth without additional support hires
+- Built and shipped multiple full-stack tools (Next.js, Supabase, Vercel) across customer-facing and internal use cases, including a diagnostic test that assesses student ability and gates reporting behind lead capture to drive top-of-funnel acquisition
+- Analyzed marketing and sales funnel data in SQL (Holistics) and Excel to identify drop-off points and inform commercial decisions
 
-EDUCATION
-MS Statistics, University of Washington, 2020
+Nous Group, Perth, Australia
+Global Management Consulting Firm
+Intern Consultant, August 2024 - December 2024
+- Authored sections of competitive RFQ responses across 4 bids, contributing to >A$100k of new project wins for the Perth office
+- Built data systems and process maps for a healthcare delivery model evaluation project, presenting findings to client stakeholders
+- Synthesized stakeholder interviews and quantitative data into recommendations for a multi-year state government report
 
-APPLICATION ANSWERS
-Why this role? I've spent four years making voice systems measurable, and two years before that inside a lender. Your problem, proving an agent is as good as a loan officer, is the exact intersection.
-
-Tell us about a result you got wrong. Early on I reported a 9% lift in call resolution that turned out to be a logging change. I now run an A/A test before every launch, and I told the team about the mistake the same day.` },
-    { id: "borderline", label: "Borderline", text: `Jordan Okafor (synthetic candidate)
-
-EXPERIENCE
-Analytics Lead, Brightpath Insurance, 2021–present
-- Own the weekly claims dashboard (SQL, Looker) used by 30 people across operations.
-- Built a renewal-propensity model in Python that the retention team now uses to prioritise outreach calls.
-- Ran pricing experiments on the renewal email flow with the marketing team; one lifted renewals.
-- Onboarded and trained four new analysts on our SQL style guide.
-
-Business Analyst, Brightpath Insurance, 2019–2021
-- Built Excel models for quarterly planning.
+Our Kinds, Perth, Australia
+Sustainability-focused café supply chain startup
+Chief of Staff (promoted from Founder’s Associate after 6 weeks), December 2021 - April 2023
+- Reported to the founder across finance, operations and investor relations, covering commercial and reporting work end to end
+- Drove the finance workstream behind a successful A$350k+ raise: financial model, investor reporting and accounting operations
+- Set unit economics for the business through product and internal cost-pricing models supporting delivery to 20+ cafés across Western Australia
+- Built the impact-data system that quantified and verified 100,000+ single-use cups avoided, the company’s core impact metric
 
 PROJECTS
-- Kaggle: sentiment classifier on customer reviews (top 30%), Python and scikit-learn.
+- Built this screening and onboarding desk for Sela's strategy & ops role: rubric, quoted evidence, interview kit, candidate replies, onboarding pack and a pipeline tracker, all running in the browser.
+- Built a Mandarin flashcard app I use to learn the language.
 
 EDUCATION
-BA Economics, UC Davis, 2019
+INSEAD, Master in Management, Class of 2024, Fontainebleau and Singapore, 2023 - 2024
+- GMAT Score: 720
+- Coursework: Valuation, Strategy, Process and Operations Management
+The University of Western Australia, Bachelor of Commerce, 2020 - 2023
+- Majors: Finance and Management; Graduated with Distinction (75% weighted average)
+Trinity College Dublin, International Exchange Semester, Spring 2023
 
 APPLICATION ANSWERS
-Why this role? I want to move from reporting into building models, and voice AI for lending looks like a big opportunity where I can learn fast.
-
-Tell us about a result you got wrong. A dashboard double-counted claims for a month because of a join. I fixed the query and added a row-count check.` },
-    { id: "weak", label: "Weak", text: `Sam Patel (synthetic candidate)
-
-SUMMARY
-Passionate, results-driven data enthusiast and strong communicator with a proven track record of leveraging cutting-edge AI to drive synergies and deliver value.
+Why this role? You're hiring someone to build the hiring machine and hand 80% of it to agents. I'd rather show that than claim it, so I built a first version of the system and screened myself with it.
+What would you automate first? First-pass screening and candidate replies, because they eat recruiter hours and every decline still has to leave people thinking well of Sela. A person keeps the final call and the close.` },
+        { id: "ops-mid", label: "Borderline", text: `Alex Morgan (synthetic candidate)
 
 EXPERIENCE
-Data Science Intern, Various Startups, 2023–2024
-- Leveraged machine learning to drive insights.
-- Worked on AI projects using ChatGPT.
-- Responsible for data tasks as assigned.
+Associate, Bramwell Partners (strategy consulting), 2023–present
+- Built a pricing model for a retail client that the CFO used to set next year's prices.
+- Ran weekly workshops with 12 client stakeholders across finance and operations.
+- Use ChatGPT daily for research summaries and first drafts of client slides.
+- Built a spreadsheet macro that automated the weekly client status report; saved the team 4 hours a week.
 
 EDUCATION
-Data Science Bootcamp, 2023
+BA Economics, University of Michigan, 2023
+
+APPLICATION ANSWERS
+Why this role? I want to move from advising on outcomes to owning them at a fast-growing startup.
+Tell us about a result you got wrong. A market-sizing model double-counted one segment. I caught it in review and rebuilt the bottom-up view before it went to the client.` },
+        { id: "ops-weak", label: "Weak", text: `Casey Nolan (synthetic candidate)
+
+SUMMARY
+Passionate, results-driven self-starter and strong communicator who loves leveraging cutting-edge AI to drive synergies.
+
+EXPERIENCE
+Business Intern, Various Companies, 2024–2025
+- Assisted with various projects as assigned.
+- Responsible for research and reporting tasks.
+
+EDUCATION
+BBA, 2024
 
 SKILLS
-Python, AI, ML, Deep Learning, Big Data, Leadership, Teamwork
+AI, ChatGPT, Leadership, Teamwork, Communication
+
+APPLICATION ANSWERS
+Why this role? I am passionate about AI and startups and believe I would be a great fit for your dynamic team.
+Tell us about a result you got wrong. I am a perfectionist so I always double check my work.` },
+      ],
+    },
+    {
+      id: "apm", label: "Associate Product Manager", jdIsSample: false,
+      jd: `Associate Product Manager
+
+About Sela
+Sela is the market-leading AI voice agent for mortgage lenders. Founded in 2024, we’ve grown like crazy (~$0->14M in 21 months), and currently count 6 of the 10 largest independent mortgage banks in the U.S. as enterprise customers. If we’re successful, the cost of owning a home in the US will become ~1% cheaper. We’ve raised $21M across our Seed and Series A from top investors.
+
+Why this is a huge opportunity
+Around 1% of the U.S. labor force works in phone sales, representing roughly $100B of annual salary, and the industry is poised at the brink of complete disruption. We are at the cutting edge of this economic transformation, one of the first companies creating real, durable economic value through applied AI.
+Buying a house is the largest financial decision most people make in their lives, and homeownership is tied to many other purchases, including life insurance, homeowners insurance, alarm systems, home renovations, solar panels, and more. By owning the mortgage vertical, we will own the relationship with the consumer, allowing us to serve as the essential AI infrastructure for high consideration consumer sales.
+
+Why Join
+Crazy growth: The market pull is exhilarating - we’ve grown 10x in the past 12 months and more than 100x since our seed round, all without a dedicated sales or marketing team. Building something that people want so badly is the best feeling you can have in a startup.
+Team and Culture: We are a high-agency team where the bar is high and everyone makes the people around them better. Collaboration and intensity are core team values: people truly care about their work and their coworkers. At the same time, we don't take ourselves too seriously.
+Challenging problems: Outperforming human sales teams on half a million daily calls is not easy. Low-latency, real-time infra. 99.9% uptime. Enterprise-grade privacy and security. Advanced simulation and evaluation systems. Flexible A/B testing. AI scheduler and dialer. We own the whole stack and we do not compromise on quality.
+Well-funded: We’ve raised $21M+ in total funding, most recently a $15M Series A in June 2026.
+
+What you will do
+You will spend your days directing AI agents to build AI agents. Almost all of your work happens through Cursor and Claude Code — standing up new voice agents, reworking existing ones, and extending the internal systems that assemble and maintain our whole fleet. Nobody arrives knowing how to do this well. You'll learn it here, fast.
+The other half is customers. You'll own the voice agents for some of the largest mortgage lenders in the country — talking to them directly, learning what their loan officers actually do all day, and turning that into an agent that performs. Every change gets verified through our evals and simulations before it goes live on real calls.
+You'll start on changes to existing agents and be building new ones end to end within a few months. From there you grow into our hardest use cases — pulling credit, recommending loan products — first alongside our PMs, then running them yourself.
+
+What you will own
+The agents for a set of our largest lenders. Their requests come to you, and you own both the work and the relationship — from a same-day tweak to a rebuild of how the agent handles an entire conversation.
+New agents, end to end. Take a customer's messy real-world process, decide how it should work as a voice conversation, and build it.
+Pattern recognition across customers. You'll see every request that comes in. Part of your job is spotting when three one-off asks are really one missing feature — and pushing that into the roadmap instead of building it three times.
+The quality bar for your agents. You decide when something is good enough to go live on real calls, and what isn't worth building at all.
+
+What are we looking for
+This can be your first product role. How you think and write matters more to us than your last title or relevant experience.
+An unusually strong writer. You'll write to customers, write the instructions agents run on, and write up what you learn. Clear writing is most of this job.
+Judgment about what matters. You'll always have more requests than time, and you'll have to tell which is which.
+Comfort with ambiguity and speed. You'll get dropped into unfamiliar problems and be expected to figure them out.
+Real curiosity about AI. You don't need to have built agents before, but you should want to badly.
+
+Benefits
+Top-of-market medical, dental, and vision coverage
+401(k) with a top-of-market employer match
+Unlimited PTO
+Snacks, dinner, and weekly team lunches
+Hybrid in-office schedule: four days a week together in SF, with a flexible remote day on Wednesdays`,
+      candidates: [
+        { id: "apm-strong", label: "Strong", text: `Ava Thompson (synthetic candidate)
+
+EXPERIENCE
+Product Analyst, Ledgerline (fintech), 2023–present
+- Wrote the spec and prompts for an LLM support assistant that now resolves 35% of chats; cut median first response from 4 hours to 20 minutes.
+- Triaged 120 feature requests into a quarterly roadmap; said no to 40% and shipped the 5 that covered 70% of demand.
+- Ran weekly calls with 8 enterprise customers and turned their feedback into 3 shipped features.
+- Stood up the first version of our churn dashboard within two weeks of joining, with no prior context on the data.
+- Mentored two new analysts and wrote our guide to writing product specs.
+
+EDUCATION
+BA English and Computer Science, UC Berkeley, 2023
+
+APPLICATION ANSWERS
+Why this role? I have spent a year writing the instructions a production assistant runs on, and I want to do that full time on calls that matter.
+Tell us about a decision you got wrong. I built a feature for one loud customer and only 2 accounts ever used it. I now check that three customers share a problem before I build for it.` },
+        { id: "apm-mid", label: "Borderline", text: `Ethan Park (synthetic candidate)
+
+EXPERIENCE
+Operations Analyst, Northgate Logistics, 2024–present
+- Built warehouse throughput dashboards used by 15 site managers.
+- Worked with the product team on requirements for a new scanning workflow.
+- Prioritised the weekly data requests from site managers; cut the backlog by 50%.
+- Set up a new returns process from scratch at a second site in three weeks.
+- Built a Claude prompt that drafts the weekly ops summary, used by the site leads.
+
+EDUCATION
+BS Industrial Engineering, Georgia Tech, 2024
+
+APPLICATION ANSWERS
+Why this role? I want to move from operations into product, and AI agents are the most interesting thing happening in software.
+Tell us about a decision you got wrong. I shipped a dashboard without asking managers what they needed. I fixed it after a round of interviews.` },
+        { id: "apm-weak", label: "Weak", text: `Morgan Reyes (synthetic candidate)
+
+SUMMARY
+Passionate, results-driven product enthusiast and strong communicator, eager to leverage cutting-edge AI to drive synergies and deliver value.
+
+EXPERIENCE
+Marketing Intern, Various Companies, 2024–2025
+- Responsible for social media tasks as assigned.
+- Assisted with various projects.
+
+EDUCATION
+BA Communications, 2024
+
+SKILLS
+AI, Product, Leadership, Teamwork, Communication
 
 APPLICATION ANSWERS
 Why this role? I am passionate about AI and believe I would be a great fit for your dynamic team.
-
-Tell us about a result you got wrong. I am a perfectionist so I always double check my work.` },
+Tell us about a decision you got wrong. I am a perfectionist so I rarely get decisions wrong.` },
+      ],
+    },
   ],
 };
 </script>
@@ -809,17 +1178,34 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
   const LABEL = { advance: "Suggest: advance", human_review: "Suggest: human review", decline: "Suggest: decline" };
   const state = { rubric: null, screen: null, decision: null };
 
-  $("jd").value = D.jd;
-  $("jdBadge").hidden = !D.jdIsSample;
-  $("jd").addEventListener("input", () => { $("jdBadge").hidden = true; });
+  let demoRole = D.roles[0];
+  const markChip = (id) => $("chips").querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.id === id));
+  const markRole = (id) => $("roleDemo").querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.id === id));
 
-  const markChip = (id) => document.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.id === id));
-  for (const c of D.candidates) {
-    const b = document.createElement("button");
-    b.className = "chip"; b.dataset.id = c.id; b.textContent = c.label;
-    b.addEventListener("click", () => { $("cand").value = c.text; markChip(c.id); run(); });
-    $("chips").appendChild(b);
+  function loadRole(role) {
+    demoRole = role;
+    markRole(role.id);
+    $("jd").value = role.jd;
+    $("jdBadge").hidden = false;
+    $("jdBadge").textContent = role.jdIsSample ? "sample posting" : "Sela's posting";
+    $("jdBadge").className = `badge ${role.jdIsSample ? "sample" : "advance"}`;
+    $("chips").innerHTML = `<span class="hint">Demo candidates:</span>`;
+    for (const c of role.candidates) {
+      const b = document.createElement("button");
+      b.className = "chip"; b.dataset.id = c.id; b.textContent = c.label;
+      b.addEventListener("click", () => { $("cand").value = c.text; markChip(c.id); run(); });
+      $("chips").appendChild(b);
+    }
+    $("cand").value = role.candidates[0].text;
+    markChip(role.candidates[0].id);
   }
+  for (const r of D.roles) {
+    const b = document.createElement("button");
+    b.className = "chip"; b.dataset.id = r.id; b.textContent = r.label;
+    b.addEventListener("click", () => { loadRole(r); compareAll(false); });
+    $("roleDemo").appendChild(b);
+  }
+  $("jd").addEventListener("input", () => { $("jdBadge").hidden = true; markRole(null); });
   $("cand").addEventListener("input", () => markChip(null));
 
   function showError(msg) { $("err").hidden = !msg; $("err").textContent = msg || ""; }
@@ -865,6 +1251,7 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
     pick(s.suggestion.decision === "decline" ? "decline" : "advance", s.suggestion.decision === "human_review");
     $("screenSec").hidden = false;
     $("onboardSec").hidden = true;
+    if ($("trackMsg")) $("trackMsg").textContent = "";
   }
 
   function pick(d, undecided = false) {
@@ -899,12 +1286,12 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
       state.rubric = rubricFor($("jd").value.trim());
       renderRubric(state.rubric);
       const axes = new Map(state.rubric.axes.map((a) => [a.id, a]));
-      const rows = D.candidates.map((c) => [c, S.screen(state.rubric, c.text)]);
+      const rows = demoRole.candidates.map((c) => [c, S.screen(state.rubric, c.text)]);
       $("compare").innerHTML = "";
       for (const [c, s] of rows) {
         const tr = document.createElement("tr");
         tr.className = "pick"; tr.tabIndex = 0;
-        tr.innerHTML = `<td><b>${esc(s.candidate_name)}</b> <span class="hint">${esc(c.label.toLowerCase())}, synthetic</span></td><td>${s.suggestion.mean.toFixed(2)}</td><td><span class="badge ${s.suggestion.decision}">${LABEL[s.suggestion.decision]}</span></td><td>${esc(axes.get(s.weakest_axis_id).name)}</td>`;
+        tr.innerHTML = `<td><b>${esc(s.candidate_name)}</b> <span class="hint">${c.real ? "real profile" : esc(c.label.toLowerCase()) + ", synthetic"}</span></td><td>${s.suggestion.mean.toFixed(2)}</td><td><span class="badge ${s.suggestion.decision}">${LABEL[s.suggestion.decision]}</span></td><td>${esc(axes.get(s.weakest_axis_id).name)}</td>`;
         const open = () => { $("cand").value = c.text; markChip(c.id); showScreen(s); $("screenSec").scrollIntoView({ behavior: "smooth", block: "start" }); };
         tr.addEventListener("click", open);
         tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
@@ -914,7 +1301,7 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
       const cur = rows.find(([c]) => c.text === $("cand").value) || rows[0];
       markChip(cur[0].id); $("cand").value = cur[0].text;
       showScreen(cur[1]);
-      $("status").textContent = "Three candidates screened. Click a row to open one.";
+      $("status").textContent = `${rows.length} candidates screened for ${state.rubric.role_title}. Click a row to open one.`;
       if (scroll) $("compareSec").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) { showError(e.message); }
   }
@@ -942,10 +1329,142 @@ Tell us about a result you got wrong. I am a perfectionist so I always double ch
     $("onboardSec").scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
+  // ---------- Tracker ----------
+  const T = window.Tracker;
+  const KEY = "screening-desk-tracker-v3";
+  const LABEL_SHORT = { advance: "advance", human_review: "human review", decline: "decline" };
+  const trk = { items: [], role: "all", armed: null };
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) { const d = JSON.parse(raw); if (Array.isArray(d.items)) return d.items; }
+    } catch {}
+    return T.demo(Date.now());
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ items: trk.items })); } catch {} }
+  trk.items = load();
+
+  for (const st of T.ALL) $("addStage").insertAdjacentHTML("beforeend", `<option>${st}</option>`);
+
+  function setTab(name) {
+    const tracker = name === "tracker";
+    $("tabScreen").setAttribute("aria-selected", String(!tracker));
+    $("tabTracker").setAttribute("aria-selected", String(tracker));
+    $("panelScreen").hidden = tracker;
+    $("panelTracker").hidden = !tracker;
+    if (tracker) renderTracker();
+    try { history.replaceState(null, "", tracker ? "#tracker" : "#screen"); } catch {}
+  }
+  $("tabScreen").addEventListener("click", () => setTab("screen"));
+  $("tabTracker").addEventListener("click", () => setTab("tracker"));
+  $("tabScreen").parentElement.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const t = $("tabScreen").getAttribute("aria-selected") === "true" ? "tracker" : "screen"; setTab(t); $(t === "tracker" ? "tabTracker" : "tabScreen").focus(); }
+  });
+
+  function stageCell(c) {
+    return `<select data-id="${esc(c.id)}" aria-label="Stage for ${esc(c.name)}">${T.ALL.map((st) => `<option${st === c.stage ? " selected" : ""}>${st}</option>`).join("")}</select>`;
+  }
+
+  function renderTracker() {
+    const now = Date.now();
+    const items = trk.items;
+    const roleRows = T.roles(items, now);
+    if (trk.role !== "all" && !roleRows.some((r) => r.role === trk.role)) trk.role = "all";
+    $("trackerCount").textContent = `(${items.filter(T.active).length})`;
+    $("demoBar").hidden = !items.some((c) => c.demo);
+    $("roleList").innerHTML = roleRows.map((r) => `<option value="${esc(r.role)}">`).join("");
+
+    $("roleChips").innerHTML = `<span class="hint">Role:</span>` + [{ role: "all", label: "All roles", n: items.filter(T.active).length }, ...roleRows.map((r) => ({ role: r.role, label: r.role, n: r.inProcess }))]
+      .map((r) => `<button class="chip${trk.role === r.role ? " on" : ""}" data-role="${esc(r.role)}">${esc(r.label)} · ${r.n}</button>`).join("");
+
+    $("overviewSec").hidden = trk.role !== "all";
+    $("rolesBody").innerHTML = roleRows.length
+      ? roleRows.map((r) => `<tr class="pick" tabindex="0" data-role="${esc(r.role)}"><td><b>${esc(r.role)}</b></td><td>${r.inProcess}</td><td>${r.Applied}</td><td>${r.Screened}</td><td>${r.Interview}</td><td>${r.Offer}</td><td>${r.Hired}</td><td>${r.overdue ? `<span class="badge human_review">${r.overdue} overdue</span>` : "0"}</td></tr>`).join("")
+      : `<tr><td colspan="8" class="empty">No candidates yet. Screen one and press “Add to tracker”, or add one by hand below.</td></tr>`;
+
+    const scoped = trk.role === "all" ? items : items.filter((c) => c.role === trk.role);
+    const f = T.funnel(scoped);
+    const top = Math.max(1, f[0].reached);
+    $("funnel").innerHTML = scoped.length ? f.map((r) => {
+      const conv = r.conversion === null ? "" : ` · ${Math.round(r.conversion * 100)}%`;
+      const tip = `${r.stage}: ${r.reached} reached, ${r.now} here now${r.conversion === null ? "" : `, ${Math.round(r.conversion * 100)}% of the previous stage`}`;
+      return `<div class="frow" title="${esc(tip)}"><span>${r.stage}</span><div class="track"><div class="bar" style="width:${(r.reached / top) * 100}%"></div></div><span class="val"><b>${r.reached}</b>${conv}</span></div>`;
+    }).join("") : `<p class="empty">No candidates in this view.</p>`;
+
+    const od = T.overdue(scoped, now);
+    $("attention").innerHTML = od.length
+      ? od.map((c) => `<li><span class="badge human_review">${c.over}d over</span><span class="who">${esc(c.name)}</span><span>${esc(c.stage)}</span><span class="meta">${c.days} days${trk.role === "all" ? ` · ${esc(c.role)}` : ""}</span></li>`).join("")
+      : `<li class="empty">Nothing is waiting longer than its target.</li>`;
+
+    $("trkBody").closest("table").classList.toggle("one-role", trk.role !== "all");
+    const order = (c) => (c.stage === "Declined" ? 9 : -T.ALL.indexOf(c.stage));
+    const rows = [...scoped].sort((a, b) => order(a) - order(b) || T.daysIn(b, now) - T.daysIn(a, now));
+    $("trkBody").innerHTML = rows.length ? rows.map((c) => {
+      const d = T.daysIn(c, now);
+      const late = T.active(c) && d > T.TARGET_DAYS[c.stage];
+      const screenCell = c.suggestion ? `<span class="badge ${c.suggestion}">${LABEL_SHORT[c.suggestion]}</span> ${Number(c.mean).toFixed(2)}` : `<span class="hint">not screened</span>`;
+      const armed = trk.armed === c.id;
+      return `<tr><td><b>${esc(c.name)}</b>${c.demo ? `<span class="tagline">${c.real ? "real profile" : "synthetic"}</span>` : ""}${c.stage === "Declined" ? `<span class="tagline">declined at ${esc(c.declinedFrom || "Applied")}</span>` : ""}</td>
+        <td class="c-role">${esc(c.role)}</td><td>${stageCell(c)}</td><td>${screenCell}</td>
+        <td class="${late ? "late" : ""}">${d}${late ? " · overdue" : ""}</td>
+        <td><button class="${armed ? "danger" : "link"}" data-remove="${esc(c.id)}">${armed ? "Confirm remove" : "Remove"}</button></td></tr>`;
+    }).join("") : `<tr><td colspan="6" class="empty">No candidates in this view.</td></tr>`;
+  }
+
+  $("roleChips").addEventListener("click", (e) => { const b = e.target.closest("[data-role]"); if (b) { trk.role = b.dataset.role; renderTracker(); } });
+  const openRole = (e) => { const tr = e.target.closest("tr[data-role]"); if (tr) { trk.role = tr.dataset.role; renderTracker(); } };
+  $("rolesBody").addEventListener("click", openRole);
+  $("rolesBody").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openRole(e); } });
+  $("trkBody").addEventListener("change", (e) => {
+    const sel = e.target.closest("select[data-id]"); if (!sel) return;
+    trk.items = trk.items.map((c) => (c.id === sel.dataset.id ? T.move(c, sel.value, Date.now()) : c));
+    save(); renderTracker();
+  });
+  $("trkBody").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-remove]"); if (!b) return;
+    if (trk.armed === b.dataset.remove) { trk.items = trk.items.filter((c) => c.id !== b.dataset.remove); trk.armed = null; save(); }
+    else trk.armed = b.dataset.remove;
+    renderTracker();
+  });
+  $("clearDemo").addEventListener("click", () => { trk.items = trk.items.filter((c) => !c.demo); save(); renderTracker(); });
+  $("copyCsv").addEventListener("click", async (e) => {
+    const btn = e.currentTarget, now = Date.now();
+    const scoped = trk.role === "all" ? trk.items : trk.items.filter((c) => c.role === trk.role);
+    try { await navigator.clipboard.writeText(T.csv(scoped, now)); btn.textContent = "Copied"; }
+    catch { btn.textContent = "Copy blocked by the browser"; }
+    setTimeout(() => (btn.textContent = "Copy as CSV"), 1600);
+  });
+  $("addForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = $("addName").value.trim(), role = $("addRole").value.trim(), stage = $("addStage").value;
+    if (!name || !role) return;
+    const now = new Date().toISOString();
+    trk.items.push({ id: "c-" + Date.now(), name, role, stage, moved: now, added: now, mean: null, suggestion: null, ...(stage === "Declined" ? { declinedFrom: "Applied" } : {}) });
+    save(); trk.role = role; $("addName").value = ""; renderTracker();
+  });
+
+  $("track").addEventListener("click", () => {
+    const s = state.screen, role = state.rubric.role_title, now = new Date().toISOString();
+    const existing = trk.items.find((c) => c.name === s.candidate_name && c.role === role);
+    // Never move someone backwards: a candidate already at Interview stays there.
+    const ahead = existing && existing.stage !== "Declined" && T.STAGES.indexOf(existing.stage) > T.STAGES.indexOf("Screened");
+    const stage = state.decision === "decline" ? "Declined" : ahead ? existing.stage : "Screened";
+    const moved = existing && existing.stage === stage ? existing.moved : now;
+    const rec = { id: existing ? existing.id : "c-" + Date.now(), name: s.candidate_name, role, stage, moved, added: existing ? existing.added : now,
+      mean: s.suggestion.mean, suggestion: s.suggestion.decision, ...(stage === "Declined" ? { declinedFrom: "Screened" } : {}) };
+    trk.items = existing ? trk.items.map((c) => (c.id === existing.id ? rec : c)) : [...trk.items, rec];
+    save(); trk.role = role; renderTracker();
+    $("trackMsg").innerHTML = `${existing ? "Updated" : "Added"} ${esc(s.candidate_name)} in the ${esc(role)} pipeline as ${stage}. <button class="link" id="goTracker">Open the tracker</button>`;
+    $("goTracker").addEventListener("click", () => { setTab("tracker"); window.scrollTo({ top: 0, behavior: "smooth" }); });
+  });
+
+  renderTracker();
+  if (location.hash === "#tracker") setTab("tracker");
+
   // Open in a working state: the demo range, with the strong candidate on screen.
-  $("cand").value = D.candidates[0].text;
+  loadRole(D.roles[0]);
   compareAll(false);
-  $("status").textContent = "Showing the three demo candidates. Paste your own to screen them.";
+  $("status").textContent = "Showing the demo candidates for this role. Paste your own to screen them.";
 })();
 </script>
 </body>
