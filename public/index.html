@@ -487,7 +487,7 @@ button.danger { color: var(--bad); border-color: var(--bad); }
       if (first) {
         first = false;
         const n = t.replace(/\(.*?\)/g, "").trim();
-        if (/^[A-Z][A-Za-z'’.-]+(?:\s+[A-Z][A-Za-z'’.-]+){1,3}$/.test(n)) { name = n; continue; }
+        if (/^[A-Z][A-Za-z'’.-]+(?:\s+[A-Z0-9][A-Za-z0-9'’.-]*){1,3}$/.test(n)) { name = n; continue; }
       }
       const isHeader = headerRe.test(t) || (t.length < 40 && t === t.toUpperCase() && /[A-Z]{3}/.test(t));
       if (isHeader) { section = classify(t); continue; }
@@ -717,11 +717,15 @@ button.danger { color: var(--bad); border-color: var(--bad); }
 
   // ---------- Messages ----------
   function messages(c, role, scores, axes) {
-    const first = c.name === "Candidate" ? "there" : c.name.split(/\s+/)[0];
-    const positive = [...scores].filter((s) => s.evidence.length && !s.evidenceIsNegative && s.evidence[0].strength >= 1 && s.evidence[0].kind !== "skill").sort((a, b) => b.score - a.score || b.evidence[0].strength - a.evidence[0].strength);
+    const first = c.name === "Candidate" ? "there" : /\d/.test(c.name) ? c.name : c.name.split(/\s+/)[0];
+    // The line we praise comes from their work, not from an answer (which may describe a mistake).
+    const praise = [...scores].filter((s) => !s.evidenceIsNegative && s.score >= 3)
+      .flatMap((s) => s.evidence.map((e) => ({ e, score: s.score })))
+      .filter(({ e }) => e.kind === "line" && e.bullet && e.strength >= 1)
+      .sort((a, b) => b.score - a.score || b.e.strength - a.e.strength);
     let strength;
-    if (positive.length) {
-      const q = shortQuote(positive[0].evidence[0].text, 110);
+    if (praise.length) {
+      const q = shortQuote(praise[0].e.text, 110);
       strength = { line: `One thing that stood out was this line from your application: "${q}"`, label: q };
     } else {
       const edu = c.lines.find((l) => l.section === "education");
@@ -799,7 +803,7 @@ button.danger { color: var(--bad); border-color: var(--bad); }
       const above = c.lines.slice(0, at).reverse().find((l) => !l.bullet && l.kind === "line" && /,/.test(l.text));
       if (above) co = above.text.split(/\s*,\s*/)[0];
     }
-    const first = c.name === "Candidate" ? "our new hire" : c.name.split(/\s+/)[0];
+    const first = c.name === "Candidate" ? "our new hire" : /\d/.test(c.name) ? c.name : c.name.split(/\s+/)[0];
     const fact = [...scores].filter((s) => s.evidence.length && !s.evidenceIsNegative).sort((a, b) => b.score - a.score)[0];
     const welcome = [
       `Please welcome ${c.name === "Candidate" ? "our new hire" : c.name}, who joins on [start date] as our ${role}.`,
@@ -923,23 +927,19 @@ button.danger { color: var(--bad); border-color: var(--bad); }
     const OPS = "Founding Strategy & Operations Generalist", APM = "Associate Product Manager";
     const rows = [
       ["Jake Makking-Robinson", OPS, "Interview", 1, 4.43, "advance"],
-      ["Alex Morgan", OPS, "Screened", 4, 3.29, "human_review"],
-      ["Casey Nolan", OPS, "Declined", 1, 1.43, "decline", "Screened"],
-      ["Nadia Haddad", OPS, "Applied", 1],
-      ["Marcus Bell", OPS, "Applied", 5],
-      ["Leah Goldberg", OPS, "Applied", 2],
-      ["Kenji Watanabe", OPS, "Interview", 6, 4.0, "advance"],
-      ["Olivia Grant", OPS, "Interview", 2, 3.86, "advance"],
-      ["Diego Alvarez", OPS, "Declined", 8, 2.71, "decline", "Interview"],
-      ["Ava Thompson", APM, "Interview", 2, 3.83, "advance"],
-      ["Ethan Park", APM, "Screened", 6, 3.33, "human_review"],
-      ["Morgan Reyes", APM, "Declined", 1, 1.33, "decline", "Screened"],
-      ["Priya Raman", APM, "Applied", 1],
-      ["Lucas Ferreira", APM, "Applied", 4],
-      ["Hannah Weiss", APM, "Applied", 2],
-      ["Tomás Ortega", APM, "Interview", 7, 4.17, "advance"],
-      ["Grace Liu", APM, "Offer", 2, 4.5, "advance"],
-      ["Daniel Brooks", APM, "Declined", 9, 2.17, "decline", "Interview"],
+      ["Synthetic 1", OPS, "Screened", 4, 3.29, "human_review"],
+      ["Synthetic 2", OPS, "Declined", 1, 1.43, "decline", "Screened"],
+      ["Synthetic 6", OPS, "Applied", 5],
+      ["Synthetic 7", OPS, "Applied", 2],
+      ["Synthetic 3", OPS, "Interview", 6, 4.0, "advance"],
+      ["Synthetic 4", OPS, "Interview", 2, 3.86, "advance"],
+      ["Synthetic 5", OPS, "Declined", 8, 2.71, "decline", "Interview"],
+      ["Synthetic 8", APM, "Interview", 2, 3.83, "advance"],
+      ["Synthetic 9", APM, "Screened", 6, 3.33, "human_review"],
+      ["Synthetic 10", APM, "Declined", 1, 1.33, "decline", "Screened"],
+      ["Synthetic 13", APM, "Applied", 1],
+      ["Synthetic 11", APM, "Interview", 7, 4.17, "advance"],
+      ["Synthetic 12", APM, "Offer", 2, 4.5, "advance"],
     ];
     return rows.map(([name, role, stage, d, mean, suggestion, declinedFrom], i) => ({
       id: "demo-" + i, name, role, stage, moved: ago(d), added: ago(d + 3), mean: mean ?? null, suggestion: suggestion ?? null, demo: true, real: name === "Jake Makking-Robinson",
@@ -1035,7 +1035,7 @@ Trinity College Dublin, International Exchange Semester, Spring 2023
 APPLICATION ANSWERS
 Why this role? You're hiring someone to build the hiring machine and hand 80% of it to agents. I'd rather show that than claim it, so I built a first version of the system and screened myself with it.
 What would you automate first? First-pass screening and candidate replies, because they eat recruiter hours and every decline still has to leave people thinking well of Sela. A person keeps the final call and the close.` },
-        { id: "ops-mid", label: "Borderline", text: `Alex Morgan (synthetic candidate)
+        { id: "ops-mid", label: "Borderline", text: `Synthetic 1
 
 EXPERIENCE
 Associate, Bramwell Partners (strategy consulting), 2023–present
@@ -1050,7 +1050,7 @@ BA Economics, University of Michigan, 2023
 APPLICATION ANSWERS
 Why this role? I want to move from advising on outcomes to owning them at a fast-growing startup.
 Tell us about a result you got wrong. A market-sizing model double-counted one segment. I caught it in review and rebuilt the bottom-up view before it went to the client.` },
-        { id: "ops-weak", label: "Weak", text: `Casey Nolan (synthetic candidate)
+        { id: "ops-weak", label: "Weak", text: `Synthetic 2
 
 SUMMARY
 Passionate, results-driven self-starter and strong communicator who loves leveraging cutting-edge AI to drive synergies.
@@ -1113,7 +1113,7 @@ Unlimited PTO
 Snacks, dinner, and weekly team lunches
 Hybrid in-office schedule: four days a week together in SF, with a flexible remote day on Wednesdays`,
       candidates: [
-        { id: "apm-strong", label: "Strong", text: `Ava Thompson (synthetic candidate)
+        { id: "apm-strong", label: "Strong", text: `Synthetic 8
 
 EXPERIENCE
 Product Analyst, Ledgerline (fintech), 2023–present
@@ -1129,7 +1129,7 @@ BA English and Computer Science, UC Berkeley, 2023
 APPLICATION ANSWERS
 Why this role? I have spent a year writing the instructions a production assistant runs on, and I want to do that full time on calls that matter.
 Tell us about a decision you got wrong. I built a feature for one loud customer and only 2 accounts ever used it. I now check that three customers share a problem before I build for it.` },
-        { id: "apm-mid", label: "Borderline", text: `Ethan Park (synthetic candidate)
+        { id: "apm-mid", label: "Borderline", text: `Synthetic 9
 
 EXPERIENCE
 Operations Analyst, Northgate Logistics, 2024–present
@@ -1145,7 +1145,7 @@ BS Industrial Engineering, Georgia Tech, 2024
 APPLICATION ANSWERS
 Why this role? I want to move from operations into product, and AI agents are the most interesting thing happening in software.
 Tell us about a decision you got wrong. I shipped a dashboard without asking managers what they needed. I fixed it after a round of interviews.` },
-        { id: "apm-weak", label: "Weak", text: `Morgan Reyes (synthetic candidate)
+        { id: "apm-weak", label: "Weak", text: `Synthetic 10
 
 SUMMARY
 Passionate, results-driven product enthusiast and strong communicator, eager to leverage cutting-edge AI to drive synergies and deliver value.
@@ -1331,7 +1331,7 @@ Tell us about a decision you got wrong. I am a perfectionist so I rarely get dec
 
   // ---------- Tracker ----------
   const T = window.Tracker;
-  const KEY = "screening-desk-tracker-v4";
+  const KEY = "screening-desk-tracker-v5";
   const LABEL_SHORT = { advance: "advance", human_review: "human review", decline: "decline" };
   const trk = { items: [], role: "all", armed: null };
   function load() {
