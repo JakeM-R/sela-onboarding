@@ -8,42 +8,48 @@
 <meta name="description" content="Takes a candidate from application to day one: rubric, evidence-quoted scores, interview kit, reply and onboarding pack. Runs entirely in the browser.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap" rel="stylesheet">
 <style>
-/* Layout: one working column. Inputs, then the screen as a scorecard, then the reply and the onboarding pack. */
+/* Layout: one working column. Inputs, then the screen as a scorecard, then the reply and the onboarding pack.
+   Look follows Sela's own site: warm near-black with cream text, burnt-orange accent, monospace uppercase labels,
+   square corners, and call-status colours (live green, ring amber) reused for advance / human review. */
 :root {
-  --bg: #ffffff;
-  --surface: #f6f7f9;
-  --line: #e3e5ea;
-  --ink: #101318;
-  --ink-2: #474d58;
-  --ink-3: #7d8491;
-  --accent: #2346c7;
-  --accent-soft: #edf1fd;
-  --on-ink: #ffffff;
-  --good: #11743a;
-  --good-soft: #e6f4ec;
-  --warn: #8f5600;
-  --warn-soft: #fbf1df;
-  --bad: #b3261e;
-  --bad-soft: #fcebea;
-  --font-ui: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --radius: 10px;
+  --bg: #1a1917;
+  --surface: #23211e;
+  --line: #36332e;
+  --ink: #f2ede4;
+  --ink-2: #bdb6aa;
+  --ink-3: #8f887c;
+  --accent: #e0703a;
+  --accent-fill: #c4501e;
+  --on-accent: #fff8f0;
+  --accent-soft: #2b211b;
+  --on-ink: #1a1917;
+  --good: #72c4a0;
+  --good-soft: #1b2b24;
+  --warn: #e0ad55;
+  --warn-soft: #2e2618;
+  --bad: #e8857a;
+  --bad-soft: #33201d;
+  --font-display: "Inter Tight", "IBM Plex Sans", system-ui, sans-serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius: 2px;
+  color-scheme: dark;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f1115; --surface: #171a20; --line: #2a2f38; --ink: #eef0f4; --ink-2: #b6bcc7; --ink-3: #868d99;
-    --accent: #8ea6ff; --accent-soft: #1a2240; --on-ink: #0f1115;
-    --good: #5fd08f; --good-soft: #13291d; --warn: #f0b45c; --warn-soft: #2d2213; --bad: #ff8a80; --bad-soft: #321716;
-    color-scheme: dark;
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f1e8; --surface: #ede6da; --line: #d8cfc1; --ink: #1c1a17; --ink-2: #4f4a42; --ink-3: #7f776b;
+    --accent: #b8481a; --accent-fill: #c4501e; --on-accent: #fff8f0; --accent-soft: #f3e1d4; --on-ink: #f6f1e8;
+    --good: #2c7a57; --good-soft: #dcefe4; --warn: #93600e; --warn-soft: #f5e6c8; --bad: #ac3528; --bad-soft: #f6dcd6;
+    color-scheme: light;
   }
 }
-:root[data-theme="dark"] {
-  --bg: #0f1115; --surface: #171a20; --line: #2a2f38; --ink: #eef0f4; --ink-2: #b6bcc7; --ink-3: #868d99;
-  --accent: #8ea6ff; --accent-soft: #1a2240; --on-ink: #0f1115;
-  --good: #5fd08f; --good-soft: #13291d; --warn: #f0b45c; --warn-soft: #2d2213; --bad: #ff8a80; --bad-soft: #321716;
-  color-scheme: dark;
+:root[data-theme="light"] {
+  --bg: #f6f1e8; --surface: #ede6da; --line: #d8cfc1; --ink: #1c1a17; --ink-2: #4f4a42; --ink-3: #7f776b;
+  --accent: #b8481a; --accent-fill: #c4501e; --on-accent: #fff8f0; --accent-soft: #f3e1d4; --on-ink: #f6f1e8;
+  --good: #2c7a57; --good-soft: #dcefe4; --warn: #93600e; --warn-soft: #f5e6c8; --bad: #ac3528; --bad-soft: #f6dcd6;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -185,6 +191,32 @@ button.danger { color: var(--bad); border-color: var(--bad); }
 }
 @media (max-width: 440px) { .weeks { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+/* Sela-style type and shapes */
+header h1 { font-family: var(--font-display); font-size: 40px; letter-spacing: -0.03em; line-height: 1.05; }
+h2, .kind, .tabs button, button, .badge, label.field, .byline, th, .frow, .tag, .hint.mono { font-family: var(--font-mono); }
+h2 { letter-spacing: 0.12em; }
+button { text-transform: uppercase; letter-spacing: 0.06em; font-size: 12.5px; font-weight: 500; border-radius: var(--radius); padding: 10px 14px; }
+button.chip { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+button.link { text-transform: none; letter-spacing: 0; font-family: var(--font-ui); font-size: 14px; }
+button.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent); }
+button.primary:hover { opacity: 1; filter: brightness(1.08); }
+.tabs button { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12.5px; }
+.badge { border-radius: var(--radius); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 500; padding: 3px 7px; }
+th { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; font-weight: 500; }
+label.field { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
+.time { border-radius: var(--radius); border-left: 3px solid var(--accent-fill); background: var(--surface); }
+.time b { color: var(--accent); font-family: var(--font-mono); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; font-size: 13px; }
+.seg, .trk select, .addform select, .addform input { border-radius: var(--radius); }
+.frow .track, .frow .bar { border-radius: 0; }
+.frow .bar { background: var(--accent-fill); }
+.dot { border-radius: 1px; }
+.dot.on { background: var(--accent); }
+blockquote { font-family: var(--font-ui); }
+@media (max-width: 440px) {
+  header h1 { font-size: 32px; }
+  .tabs button { padding: 10px 8px; font-size: 11px; letter-spacing: 0.04em; }
+}
 </style>
 </head>
 <body>
