@@ -8,8 +8,8 @@ Built by Jake Makking-Robinson as proof of work for Ohm's Chief of Staff role, a
 
 ## What it does
 
-1. **Roles and rubrics from Ohm's own postings.** Three roles: FDE Test & Validation, FDE Battery Engineering and Founding AE. Every criterion carries the requirement line it was drawn from, copied word for word and shown when you tap the criterion. The postings are kept in `postings/`, and a test fails if any line isn't an exact substring.
-2. **Gates.** Work authorisation ("US citizen/visa only") plus the posting's first requirement, which must score 3 or more. Needing sponsorship fails the gate. If authorisation isn't stated, the applicant goes to a screen to confirm it.
+1. **Roles and rubrics from Ohm's own postings.** Three roles: FDE Test & Validation, Founding AE and Chief of Staff. Every criterion carries the requirement line it was drawn from, copied word for word and shown when you tap the criterion. The postings are kept in `postings/`, and a test fails if any line isn't an exact substring.
+2. **Gates.** Work authorisation, where the posting asks for it, plus the posting's first requirement, which must score 3 or more. For the two "US citizen/visa only" roles, needing sponsorship fails the gate, and an applicant who doesn't state authorisation goes to a screen to confirm it. The Chief of Staff posting says "US citizenship/visa not required", so that gate starts off there.
 3. **Scores, each with a quote.** Each criterion is scored 1–5 from the CV lines that match its evidence terms, and the strongest lines are quoted verbatim. A keyword in a skills list or summary scores 2 at most. A 5 needs a line with an action, a number and an outcome, backed by a second solid line. The AE closing criterion only counts deals of six figures or more.
 4. **Decision.**
    - **Work trial:** clears both gates, has a weighted score of 3.8 or more, nothing under 3, at least 5 lines of evidence, and states work authorisation.
@@ -26,10 +26,11 @@ Built by Jake Makking-Robinson as proof of work for Ohm's Chief of Staff role, a
 
 There are 8 synthetic applicants per role, labelled "Demo applicants, not real people", with company names invented. They include strong, weak and edge cases, and `npm test` checks that each one sorts as intended:
 
-- A great battery PhD with no Python evidence → screen, flagged on Python.
+- A great battery PhD applying for T&V with no Python evidence → screen, flagged on Python.
 - An AE with big deals but no technical background → screen, flagged on STEM.
-- A strong candidate in each role who needs sponsorship → pass on the visa gate.
-- A strong candidate with a thin CV → screen.
+- A strong T&V or AE candidate who needs sponsorship → pass on the visa gate. A Chief of Staff candidate in London who needs sponsorship isn't penalised.
+- A strong Chief of Staff candidate with a thin CV → screen.
+- A strong engineer with no generalist breadth, applying for Chief of Staff → pass.
 - A data scientist who lists T&V terms only in the skills list and summary → pass on the must-have gate.
 - An SMB rep with many small inbound deals → pass (under six figures).
 
@@ -48,7 +49,6 @@ Rubric edits, stage moves and pasted applicants are saved in the viewer's browse
 
 ## Before sending the link
 
-- [ ] Paste the Battery Engineering posting into `postings/fde-battery-engineering.txt`, then copy its lines into the `src` fields of the `bat` role. Until then `npm test` fails, which also blocks the Pages deploy.
 - [ ] Run `npm test`, then open the live page on desktop and phone.
 
 The last Sela version is tagged `sela-final`.

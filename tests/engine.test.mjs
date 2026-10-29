@@ -23,7 +23,7 @@ test("every criterion, gate and nice-to-have line is copied word for word from O
   for (const r of ROLES) {
     const text = posting(r);
     assert.ok(text, `postings/${r.posting} is missing: paste Ohm's ${r.title} posting there`);
-    for (const line of [r.visaSrc, ...r.axes.map((a) => a.src), ...r.nice.map((n) => n.src)]) {
+    for (const line of [r.visa.src, ...r.axes.map((a) => a.src), ...r.nice.map((n) => n.src)]) {
       assert.ok(line, `${r.title}: a source line is empty`);
       assert.ok(text.includes(line), `${r.title}: not verbatim in the posting: ${line}`);
     }
@@ -52,11 +52,11 @@ test("shortlist order is work trial, then screen, then pass, each by score", () 
 });
 
 test("edge case: a great battery PhD with no Python evidence goes to a screen, flagged on Python", () => {
-  const r = run("bat2");
-  assert.equal(r.byId.bat_sci.score, 5);
-  assert.equal(r.byId.bat_py.score, 1);
+  const r = run("tv8");
+  assert.ok(r.byId.tv_depth.score >= 4);
+  assert.equal(r.byId.tv_data.score, 1);
   assert.equal(r.decision, "screen");
-  assert.match(r.reason, /Python \(1\/5\)/);
+  assert.match(r.reason, /Applied data and Python \(1\/5\)/);
 });
 
 test("edge case: an AE with big deals but no technical background goes to a screen, flagged on STEM", () => {
@@ -68,7 +68,7 @@ test("edge case: an AE with big deals but no technical background goes to a scre
 });
 
 test("edge case: a strong candidate who needs sponsorship fails the visa gate, quoting the line", () => {
-  for (const id of ["tv4", "bat4", "ae5"]) {
+  for (const id of ["tv4", "ae5"]) {
     const r = run(id);
     assert.equal(r.visa.status, "sponsor");
     assert.equal(r.decision, "pass");
@@ -77,9 +77,16 @@ test("edge case: a strong candidate who needs sponsorship fails the visa gate, q
   }
 });
 
+test("the visa gate follows each posting: Chief of Staff doesn't require US authorisation", () => {
+  const r = run("cos2");
+  assert.equal(r.visa.status, "sponsor");
+  assert.equal(r.decision, "trial");
+  assert.equal(D.defaults(role("cos")).gates.visa, false);
+});
+
 test("edge case: a strong candidate with a thin CV goes to a screen, not a trial", () => {
-  const r = run("bat8");
-  assert.ok(r.score >= 4.5);
+  const r = run("cos3");
+  assert.ok(r.score >= 4);
   assert.ok(r.thin);
   assert.equal(r.decision, "screen");
 });
@@ -89,7 +96,6 @@ test("name-dropping: requirement keywords in a skills list or summary don't open
   assert.equal(r.byId.tv_depth.score, 2);
   assert.ok(r.byId.tv_depth.claimOnly);
   assert.equal(r.decision, "pass");
-  assert.equal(run("bat5").decision, "pass");
 });
 
 test("a 5 needs a concrete outcome, not just the keyword", () => {
@@ -170,8 +176,8 @@ test("work-trial brief: three tasks, each naming its criterion and the 5 anchor"
     }
   }
   // The criterion the CV leaves least certain is tested first.
-  const r = role("bat"), cfg = D.defaults(r), b = D.brief(r, cfg, run("bat2"));
-  assert.equal(b.tasks[0].axis, "Python");
+  const r = role("tv"), cfg = D.defaults(r), b = D.brief(r, cfg, run("tv8"));
+  assert.equal(b.tasks[0].axis, "Applied data and Python");
 });
 
 test("onboarding: a first-two-weeks checklist per role with accounts, intros and a first customer touchpoint", () => {

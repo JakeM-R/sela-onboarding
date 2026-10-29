@@ -344,7 +344,7 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
   function defaults(role) {
     return {
       bars: { trial: 3.8, screen: 2.8 },
-      gates: { visa: true, hard: true },
+      gates: { visa: role.visa.required, hard: true },
       axes: Object.fromEntries(role.axes.map((a) => [a.id, { weight: a.weight, terms: [...a.terms], anchors: { ...a.anchors } }])),
     };
   }
@@ -392,13 +392,13 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
     let decision, reason, quote;
     if (cfg.gates.visa && visa.status === "sponsor") {
       decision = "pass"; quote = visa.line;
-      reason = `Fails the work-authorisation gate: needs sponsorship, and the posting says "${role.visaSrc}".`;
+      reason = `Fails the work-authorisation gate: needs sponsorship, and the posting says "${role.visa.src}".`;
     } else if (cfg.gates.hard && gate.score <= 2) {
       decision = "pass"; quote = q(gate);
       reason = `Fails the must-have gate: ${label(gate)}. ${gate.why}`;
     } else if (score >= cfg.bars.trial && weakest.score >= 3 && !thin && (visa.status === "ok" || !cfg.gates.visa)) {
       decision = "trial"; quote = q(strongest);
-      reason = `Clears both gates and every criterion at 3 or above. Strongest on ${label(strongest)}.`;
+      reason = `Clears the gates and every criterion at 3 or above. Strongest on ${label(strongest)}.`;
     } else if (score >= cfg.bars.screen) {
       decision = "screen";
       if (weakest.score < 3) {
@@ -488,13 +488,13 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
 </script>
 
 <script id="roles">
-// Ohm's three roles. Every `src` is copied word for word from Ohm's YC posting (kept in postings/ and checked by the tests).
+// Ohm's three roles. Every `src` (and `visa.src`) is copied word for word from Ohm's YC posting (kept in postings/ and checked by the tests).
 // Names, evidence terms, anchors and trial tasks are the desk's own and editable on screen.
 (function (root) {
   const ROLES = [
     {
       id: "tv", title: "Forward Deployed Engineer, Test & Validation", short: "FDE, Test & Validation", posting: "fde-test-validation.txt",
-      visaSrc: "US citizen/visa only", gate: "tv_depth",
+      visa: { required: true, src: "US citizen/visa only" }, gate: "tv_depth",
       axes: [
         { id: "tv_depth", name: "Hands-on test and validation on complex hardware", weight: 3,
           src: "Deep test and validation experience. You have spent years inside T&V programs for complex hardware - cell or pack qualification, environmental and reliability testing, or equivalent programs in aerospace, medical devices, or defense.",
@@ -532,44 +532,8 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
       ],
     },
     {
-      id: "bat", title: "Forward Deployed Engineer, Battery Engineering", short: "FDE, Battery Engineering", posting: "fde-battery-engineering.txt",
-      visaSrc: "US citizen/visa only", gate: "bat_sci",
-      // The Battery posting hasn't been pasted yet. Each src stays empty until it is copied in, and the tests fail until then.
-      axes: [
-        { id: "bat_sci", name: "Battery science or electrochemistry depth", weight: 3, src: "",
-          terms: ["electrochem*", "battery", "batteries", "cell chemistry", "Li-ion", "lithium-ion", "lithium", "cathode*", "anode*", "electrolyte*", "SEI", "impedance", "EIS", "degradation", "cycle life", "capacity fade", "cell design", "LFP", "NMC"],
-          anchors: { 1: "No battery or electrochemistry work.", 3: "Has worked on cells or packs, with some specifics.", 5: "Deep electrochemistry: explained a degradation or performance mechanism and showed it with data." },
-          trial: "Read a degradation dataset for one cell (capacity fade, impedance growth). Explain the likely mechanisms and the test that would confirm them." },
-        { id: "bat_model", name: "Physics-based or data-driven modelling, and when each applies", weight: 2, src: "",
-          terms: ["physics-based", "DFN", "P2D", "SPMe", "equivalent circuit", "ECM", "PyBaMM", "COMSOL", "surrogate*", "data-driven", "state of health", "SOH", "remaining useful life", "RUL", "model*"],
-          anchors: { 1: "No modelling work.", 3: "Built physics-based or data-driven models of cells.", 5: "Built both, chose between them for a stated reason, and measured the error." },
-          trial: "Choose physics-based, data-driven or both to predict the cell's remaining life, and defend the choice in five minutes." },
-        { id: "bat_py", name: "Python", weight: 2, src: "",
-          terms: ["Python", "pandas", "numpy", "scipy", "scikit*", "PyBaMM", "PyTorch", "Jupyter"],
-          anchors: { 1: "No Python shown.", 3: "Uses Python on real work.", 5: "Built Python tooling or models others rely on, with a measured effect." },
-          trial: "Build that model in Python on the data provided. Show its error against a held-out set." },
-        { id: "bat_ai", name: "AI coding tools as a primary workflow", weight: 1, src: "",
-          terms: ["Claude Code", "Claude", "Cursor", "Copilot", "Codex", "AI coding", "AI-assisted", "LLM*", "ChatGPT", "agent*", "AI"],
-          anchors: { 1: "No sign of AI coding tools.", 3: "Uses AI coding tools in their work.", 5: "AI coding tools are how they work, with battery testing examples and a habit of checking the output." },
-          trial: "Do the modelling task with your normal AI coding setup on screen-share, and narrate where you trust the tool and where you check it." },
-      ],
-      nice: [
-        { id: "bat_combo", src: "", terms: ["physics-informed", "hybrid model*", "physics and data", "combined physics"] },
-        { id: "bat_prod", src: "", terms: ["in production", "to production", "production model*", "deployed to", "shipped model*"] },
-      ],
-      onboard: [
-        { when: "Before day 1", item: "Laptop, Google Workspace, Slack and GitHub organisation access", owner: "Ops" },
-        { when: "Day 1", item: "Platform walkthrough, focused on how cell test data flows into analysis", owner: "Head of Engineering" },
-        { when: "Day 1", item: "Intro meetings: the founder, the Head of Engineering, then 30 minutes with each teammate", owner: "Founder" },
-        { when: "Day 2", item: "Dev environment set up; read access to customer cell and pack datasets under each account's data agreement", owner: "Head of Engineering" },
-        { when: "Week 1", item: "Re-run one existing battery model end to end and write down where it breaks", owner: "Head of Engineering" },
-        { when: "Week 1", item: "Ship one small reviewed change to the battery analysis code", owner: "Head of Engineering" },
-        { when: "Week 2", item: "First customer touchpoint: review one customer's cell test data with their battery engineers, the founder in the room", owner: "Founder" },
-      ],
-    },
-    {
       id: "ae", title: "Founding Account Executive", short: "Founding AE", posting: "founding-account-executive.txt",
-      visaSrc: "US citizen/visa only", gate: "ae_close",
+      visa: { required: true, src: "US citizen/visa only" }, gate: "ae_close",
       axes: [
         { id: "ae_close", name: "Closed six-figure enterprise deals, including self-sourced pipeline", weight: 3,
           src: "Enterprise closing experience. A track record of closing six-figure deals into enterprise or strategic accounts, ideally technical products sold to industrial companies - including building your own pipeline, not just working inbound or SDR-sourced leads",
@@ -607,6 +571,45 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
         { when: "Week 1", item: "Standard demo certified: run it for the founder and an engineer, and fix what they flag", owner: "Head of Engineering" },
         { when: "Week 1", item: "Sit in on two founder-led customer calls", owner: "Founder" },
         { when: "Week 2", item: "First customer touchpoint: run discovery on one inherited deal yourself, the founder listening", owner: "Founder" },
+      ],
+    },
+    {
+      id: "cos", title: "Chief of Staff", short: "Chief of Staff", posting: "chief-of-staff.txt",
+      visa: { required: false, src: "US citizenship/visa not required" }, gate: "cos_own",
+      axes: [
+        { id: "cos_own", name: "Autonomous: decides, doesn't wait, moves fast", weight: 3,
+          src: "Autonomous: you make most decisions yourself, don't wait for permission, and move fast",
+          terms: ["without being asked", "from scratch", "took over", "owned", "founded", "co-founded", "started", "set up", "end to end", "end-to-end", "first hire", "first operations hire", "decided"],
+          anchors: { 1: "Only ever worked to someone else's plan.", 3: "Took ownership of something beyond their remit, with a result.", 5: "Repeatedly picked up what was breaking without being asked, made the call and shipped a measurable fix." },
+          trial: "Here are five things breaking this week (a list from the CEO). Pick the two you'd fix first, say why in three lines, and fix one by the end of the day." },
+        { id: "cos_general", name: "Strong generalist across recruiting, content and operations", weight: 2,
+          src: "Strong generalist: you want to get your reps across different disciplines from recruiting to content creation to operations.",
+          terms: ["recruit*", "hiring", "hired", "hires", "sourcing", "onboarding", "operations", "office", "vendor*", "expense*", "payroll", "finance", "content", "marketing", "partnerships", "security questionnaire*", "board prep"],
+          anchors: { 1: "One discipline only.", 3: "Real work in two of recruiting, content, sales and operations.", 5: "Delivered measurable results across three or more disciplines." },
+          trial: "Take one open role's pipeline and plan its next week: who to source, who to screen, who gets a work trial, and the message you'd send each." },
+        { id: "cos_drive", name: "Driven: cold calls, content, whatever helps growth", weight: 2,
+          src: "Driven in pursuing your goals: you’re down to make cold calls, put out content, aggressively pursue whatever is needed to help the company grow",
+          terms: ["cold call*", "cold email*", "outbound", "booked", "demos", "posts", "newsletter", "blog", "case stud*", "inbound leads", "sales pipeline", "grew revenue"],
+          anchors: { 1: "No sign of selling or putting out content.", 3: "Has done outbound or published content, with some result.", 5: "Ran outbound or content at volume and can show the meetings, leads or revenue it produced." },
+          trial: "Write a send-ready cold sequence to five engineering leaders at target accounts, and one LinkedIn post announcing a customer result." },
+        { id: "cos_tech", name: "Technical background, comfortable with engineers and scientists", weight: 1, edu: true,
+          src: "Technical background: STEM degree or equivalent preferred, and you feel comfortable working in a highly technical environment with engineers and scientists",
+          terms: ["engineering", "engineers", "scientists", "physics", "chemistry", "mathematics", "statistics", "computer science", "computer sciences", "materials science", "Python", "SQL", "BS", "BEng", "MEng", "BSc"],
+          anchors: { 1: "No STEM degree or technical work.", 3: "A STEM degree, or real work alongside engineers.", 5: "Technical work of their own, plus a record of operating alongside engineers and scientists." },
+          trial: "Draft answers to one customer's security questionnaire, and flag the questions that need an engineer and why." },
+      ],
+      nice: [
+        { id: "cos_startup", src: "Love startups: you want the speed, the ownership, the opportunity to build things from scratch", terms: ["seed", "Series A", "Series B", "founder", "founding", "startup"], roleOnly: true },
+        { id: "cos_routine", src: "No task is beneath you: you'll chase top candidates, make cold calls, generate marketing content and take pride in optimizing routine work", terms: ["expense*", "office operations", "vendor management", "admin", "month-end"] },
+      ],
+      onboard: [
+        { when: "Before day 1", item: "Laptop, Google Workspace, Slack, the applicant tracker, CRM and finance tool access", owner: "CEO" },
+        { when: "Day 1", item: "Intro meetings: the CEO, the Head of Engineering, then 30 minutes with each teammate", owner: "CEO" },
+        { when: "Day 1", item: "Handover of open hiring: every role, every candidate, every work trial in flight", owner: "CEO" },
+        { when: "Day 2", item: "Platform walkthrough with an engineer, enough to run a standard demo", owner: "Head of Engineering" },
+        { when: "Week 1", item: "Take over office operations, expenses and vendor management", owner: "CEO" },
+        { when: "Week 1", item: "Write down the three biggest bottlenecks, with evidence for each, and agree which to fix first", owner: "CEO" },
+        { when: "Week 2", item: "First customer touchpoint: run one customer inquiry or security questionnaire end to end, the CEO reviewing", owner: "CEO" },
       ],
     },
   ];
@@ -750,151 +753,22 @@ Team player, Selenium, Jira, manual testing
 `),
     A("tv8", "tv", "Applied", 1, "screen", `
 Synthetic 8
-Pasadena, CA · US citizen
-
-Experience
-Test Engineer, Lumen Robotics, 2022–present
-- Ran validation tests on actuator assemblies for 2 robot arm programs
-- Wrote test plans for motor qualification with a DOE, which cut test runs by 20%
-- Built Python scripts to parse test logs into weekly reports
-- Tried ChatGPT to summarise test reports
-Test Engineering Intern, Lumen Robotics, 2021–2022
-- Assisted with environmental testing of sensor modules
-
-Education
-BS Mechanical Engineering, Caltech, 2022
-`),
-
-    // ---------- FDE, Battery Engineering ----------
-    A("bat1", "bat", "Work trial", 2, "trial", `
-Synthetic 17
-Berkeley, CA · US citizen
-
-Experience
-Battery Modelling Engineer, Voltreach, 2020–present
-- Built a physics-based DFN model in PyBaMM, calibrated on 120 cells, that predicted capacity fade within 2% over 1,000 cycles
-- Developed a hybrid model combining physics and data that cut end-of-life prediction error by 40% versus the data-driven baseline
-- Shipped a Python state of health model to production, used by 3 customer test labs
-- Use Claude Code daily: built 12 cycling-data parsers in 5 days, checked each against hand-labelled files, and cut data prep from 2 weeks to 1 day
-Postdoctoral Researcher, Lawrence Lab, 2018–2020
-- Characterised SEI growth on silicon anodes with EIS across 80 cells and published 4 papers on degradation mechanisms
-
-Education
-PhD Chemical Engineering (electrochemistry), Stanford University, 2018
-`),
-    A("bat2", "bat", "Applied", 3, "screen", `
-Synthetic 18
 Cambridge, MA · US citizen
 
 Experience
-Postdoctoral Fellow, Electrochemical Energy Lab, 2021–present
-- Discovered a lithium plating mechanism in fast-charged NMC cells across 200 cells, which reduced capacity fade by 25% with a revised charge protocol
-- Built a P2D electrochemical model in COMSOL that matched measured degradation within 3% over 800 cycles
-- Characterised impedance growth with EIS on 150 cells and published 6 papers on cathode degradation
-- Designed cycle life experiments for 3 industry partners, which shortened their cell design reviews by 2 months
-Research Assistant, Electrochemical Energy Lab, 2016–2021
-- Built coin and pouch cells for electrolyte studies
+Senior Cell Qualification Scientist, Voltreach, 2019–present
+- Led cell qualification for 3 NMC programs through cycle life, abuse and thermal testing, all released on schedule
+- Designed a DOE for fast-charge testing across 200 cells that cut the test matrix by 40% at 95% confidence
+- Found a lithium plating failure mode during qualification that prevented a field issue across 50,000 packs
+- Built electrochemical models in MATLAB and COMSOL that matched measured capacity fade within 3%
+Postdoctoral Researcher, Electrochemical Energy Lab, 2016–2019
+- Characterised cathode degradation with EIS on 150 cells and published 6 papers
 
 Education
-PhD Materials Science, MIT, 2021
+PhD Materials Science, MIT, 2016
 
 Skills
-MATLAB, COMSOL, EIS, cell assembly
-`),
-    A("bat3", "bat", "Applied", 1, "trial", `
-Synthetic 19
-Fremont, CA · Authorized to work in the US, no sponsorship required
-
-Experience
-Senior Cell Engineer, Ardent Motors, 2017–present
-- Led cell design for 2 LFP packs, 1,500 cells through cycle life and abuse testing, both released on schedule
-- Built a data-driven state of health model in Python on 3 million cycles that is in production across 40,000 vehicles
-- Built an equivalent circuit model with physics-based ageing terms that cut warranty forecast error by 30%
-- Use Cursor and Claude for most code: wrote a cycling-test analysis library in 3 weeks that replaced 2,000 lines of MATLAB
-Battery Test Engineer, Ardent Motors, 2014–2017
-- Ran degradation tests on 600 NMC cells and caught 3 supplier defects before launch
-
-Education
-MS Mechanical Engineering, UC Berkeley, 2014
-`),
-    A("bat4", "bat", "Applied", 2, "pass", `
-Synthetic 20
-Toronto, ON · Would need visa sponsorship to work in the US
-
-Experience
-Battery Research Engineer, Northpole Cells, 2018–present
-- Built a physics-based SPMe model in PyBaMM that predicted cell degradation within 3% over 900 cycles
-- Characterised electrolyte additives across 300 cells, which improved cycle life by 20%
-- Wrote a Python pipeline that cut cycling data processing from 2 days to 1 hour for 12 engineers
-- Use Copilot and Claude for daily analysis code, with tests on every parser
-Graduate Researcher, University of Toronto, 2013–2018
-- Studied cathode degradation in NMC cells and published 5 papers
-
-Education
-PhD Chemical Engineering, University of Toronto, 2018
-`),
-    A("bat5", "bat", "Applied", 1, "pass", `
-Synthetic 21
-New York, NY · US citizen
-
-Summary
-Machine learning engineer keen to move into batteries and electrochemistry.
-
-Experience
-Machine Learning Engineer, Finlytic, 2019–present
-- Built a fraud detection model in Python and PyTorch that cut false positives by 35% across 8 million transactions
-- Deployed 10 models to production with automated retraining, used by 4 teams
-- Use Claude Code and Cursor daily; shipped an internal agent that reduced ticket triage time by 50%
-Data Scientist, Finlytic, 2016–2019
-- Built forecasting models in pandas and scikit-learn that improved forecast accuracy by 12%
-
-Education
-BS Computer Science, NYU, 2016
-`),
-    A("bat6", "bat", "Applied", 4, "screen", `
-Synthetic 22
-Reno, NV · US citizen
-
-Experience
-Battery Test Engineer, Sierra Storage, 2018–present
-- Ran cycle life testing on 400 LFP cells for 2 grid storage programs, both released
-- Built cell test procedures and logged degradation results for the cell design team
-- Wrote Python scripts to plot capacity fade, used by 5 engineers
-Lab Technician, Sierra Storage, 2016–2018
-- Assembled battery modules and ran impedance checks
-
-Education
-BS Chemistry, University of Nevada, 2016
-`),
-    A("bat7", "bat", "Applied", 2, "pass", `
-Synthetic 23
-Remote · US citizen
-
-Summary
-Hard-working, self-motivated engineer with exposure to batteries and a passion for clean energy.
-
-Experience
-Sales Support Associate, GreenHome Solar, 2021–present
-- Responsible for answering customer questions about solar and battery products
-- Worked with various teams on installs
-
-Education
-BA Environmental Studies, State University, 2020
-
-Skills
-Excel, customer service, team player
-`),
-    A("bat8", "bat", "Applied", 1, "screen", `
-Synthetic 24
-Ann Arbor, MI · US citizen
-
-Experience
-Battery Modelling Engineer, Coreline Cells, 2019–present
-- Built a physics-based DFN model in PyBaMM that predicted capacity fade within 2% across 500 cells, now used in every cell design review
-- Shipped a Python degradation forecasting tool built with Claude Code that cut cell qualification time by 6 weeks
-
-Education
-PhD Mechanical Engineering (electrochemistry), University of Michigan, 2019
+MATLAB, COMSOL, JMP, EIS
 `),
 
     // ---------- Founding Account Executive ----------
@@ -1028,6 +902,134 @@ Systems Engineer, Marlow Defense Systems, 2015–2019
 Education
 BS Aerospace Engineering, Georgia Institute of Technology, 2015
 `),
+
+    // ---------- Chief of Staff ----------
+    A("cos1", "cos", "Applied", 3, "trial", `
+Synthetic 17
+San Francisco, CA
+
+Experience
+Founder's Associate, Fieldline Robotics (Series A), 2022–present
+- Owned hiring for 9 roles in 12 months: built the sourcing pipeline, ran 140 screens and work trials, and closed 8 hires
+- Built an automated onboarding flow that cut new-hire setup from 3 days to half a day
+- Made 60 cold calls a week to aerospace test leads, which booked 22 demos and 3 pilots
+- Answered 14 security questionnaires and cut turnaround from 10 days to 3 days with a reusable answer bank
+- Took over office operations and vendors without being asked and cut monthly spend by 18%
+Analyst, Pierpoint Consulting, 2019–2022
+- Built cost models for 5 manufacturing clients, which saved one client $4M a year
+
+Education
+BS Mechanical Engineering, UCLA, 2019
+`),
+    A("cos2", "cos", "Work trial", 1, "trial", `
+Synthetic 18
+London, UK · Would need visa sponsorship to relocate to the US
+
+Experience
+Operations Lead, Brightcell Energy (seed), 2021–present
+- First operations hire: set up hiring, payroll, expenses and vendor management from scratch for a team that grew from 6 to 30
+- Ran recruiting end to end for 12 engineers and scientists, cutting time to hire from 9 weeks to 5 weeks
+- Wrote 40 LinkedIn posts and 2 case studies that brought in 15 inbound leads
+- Made 300 cold calls to battery labs, which booked 25 demos
+- Built Python and SQL reports on sales data that the CEO now uses every Monday
+Research Engineer, Imperial College London, 2018–2021
+- Ran 400 cell tests and published 2 papers on battery degradation
+
+Education
+MEng Chemical Engineering, Imperial College London, 2018
+`),
+    A("cos3", "cos", "Applied", 1, "screen", `
+Synthetic 19
+New York, NY
+
+Experience
+Chief of Staff to the CEO, Tessel Health (Series B), 2022–present
+- Took over hiring, operations and board prep without being asked; hired 14 people in 9 months and cut monthly burn by 12%
+- Built the first outbound motion from scratch: 500 cold emails, 40 demos booked, 6 customers signed
+
+Education
+BS Applied Mathematics, Columbia University, 2018
+`),
+    A("cos4", "cos", "Applied", 2, "pass", `
+Synthetic 20
+Chicago, IL
+
+Summary
+Results-driven strategy consultant, passionate about operations, hiring and startups, with a proven track record of driving synergies.
+
+Experience
+Senior Consultant, Grantley Advisory, 2019–present
+- Responsible for slide decks for various clients
+- Supported workstreams across strategy projects
+- Exposure to recruiting events and marketing campaigns
+
+Education
+BA Economics, Northwestern University, 2019
+`),
+    A("cos5", "cos", "Applied", 1, "pass", `
+Synthetic 21
+Seattle, WA
+
+Experience
+Senior Software Engineer, Cloudrail, 2018–present
+- Built a data pipeline in Python that cut report latency from 6 hours to 15 minutes for 200 users
+- Led the migration of 40 services to Kubernetes, which reduced infrastructure cost by 25%
+- Set up the on-call rotation from scratch and wrote the runbooks, now used by 5 teams
+Software Engineer, Cloudrail, 2015–2018
+- Shipped 3 customer-facing features used by 10,000 customers
+
+Education
+BS Computer Science, University of Washington, 2015
+`),
+    A("cos6", "cos", "Screened", 6, "screen", `
+Synthetic 22
+Austin, TX
+
+Experience
+Head of Operations, Plume Logistics (seed), 2020–present
+- Joined as the fourth hire and took over hiring, finance and office operations from scratch; hired 20 people in 18 months
+- Made 40 cold calls a week to mid-market shippers, which booked 60 demos and grew revenue by 35%
+- Wrote the company newsletter and 30 blog posts that doubled inbound leads
+- Owned vendor management and cut software spend by 22%
+Account Manager, Plume Logistics, 2018–2020
+- Renewed 45 customer contracts with 96% retention
+
+Education
+BA English Literature, University of Texas, 2018
+`),
+    A("cos7", "cos", "Applied", 1, "screen", `
+Synthetic 23
+Berkeley, CA
+
+Experience
+Operations Intern, Gridstack (seed), 2025–2026
+- Helped the CEO with recruiting logistics and scheduled 50 candidate interviews
+- Took over the expense process and cut month-end close from 5 days to 2 days
+- Wrote 10 LinkedIn posts for the company page
+Founder, Berkeley Hardware Club, 2023–2025
+- Started the club from scratch and grew it to 120 members with 6 industry speakers
+
+Education
+BS Electrical Engineering and Computer Sciences, UC Berkeley, 2026
+`),
+    A("cos8", "cos", "Applied", 4, "pass", `
+Synthetic 24
+Remote
+
+Summary
+Self-motivated go-getter who loves startups, cold calling, hiring and operations.
+
+Experience
+Customer Support Associate, Snapbox, 2022–present
+- Responsible for answering support tickets
+- Worked with various teams on customer issues
+
+Education
+BA Psychology, State University, 2021
+
+Skills
+Cold calling, recruiting, operations, Notion, team player
+`),
   ];
   root.DEMO = DEMO;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -1108,8 +1110,8 @@ BS Aerospace Engineering, Georgia Institute of Technology, 2015
     const gate = r.byId[role.gate], gateAxis = role.axes.find((x) => x.id === role.gate);
     const visaText = { ok: `Stated: “${r.visa.line && esc(Desk.shortQuote(r.visa.line.text, 90))}”`, sponsor: `Needs sponsorship: “${r.visa.line && esc(Desk.shortQuote(r.visa.line.text, 90))}”`, unknown: "Not stated in the CV" }[r.visa.status];
     const gates = `<div class="block"><h3>Must-have gates</h3>
-      <div class="gate"><span>Work authorisation: <span class="note">${visaText}</span></span><span class="state ${r.visa.status === "sponsor" ? "no" : ""}">${!cfg.gates.visa ? "Gate off" : r.visa.status === "ok" ? "Clears" : r.visa.status === "sponsor" ? "Fails" : "Confirm"}</span></div>
-      <p class="src">From Ohm's posting: <b>“${esc(role.visaSrc)}”</b></p>
+      <div class="gate"><span>Work authorisation: <span class="note">${visaText}</span></span><span class="state ${r.visa.status === "sponsor" ? "no" : ""}">${!cfg.gates.visa ? (role.visa.required ? "Gate off" : "Not required") : r.visa.status === "ok" ? "Clears" : r.visa.status === "sponsor" ? "Fails" : "Confirm"}</span></div>
+      <p class="src">From Ohm's posting: <b>“${esc(role.visa.src)}”</b></p>
       <div class="gate"><span>${esc(gateAxis.name)} <span class="note">at 3/5 or above</span></span><span class="state ${gate.score <= 2 ? "no" : ""}">${!cfg.gates.hard ? "Gate off" : gate.score >= 3 ? "Clears" : "Fails"}</span></div>
     </div>`;
     const axes = `<div class="block"><h3>Criteria from the posting · weighted score ${r.mean.toFixed(2)}${r.bonus ? ` + ${r.bonus.toFixed(1)} for nice-to-haves` : ""}</h3>
@@ -1193,7 +1195,7 @@ BS Aerospace Engineering, Georgia Institute of Technology, 2015
         </div>
       </div>
       <div class="crit"><div class="crit-name">Must-have gates</div>
-        <label class="toggle"><input type="checkbox" data-gate="visa" ${cfg.gates.visa ? "checked" : ""}><span>Work authorisation<br><span class="note">From Ohm's posting: “${esc(role.visaSrc)}”</span></span></label>
+        <label class="toggle"><input type="checkbox" data-gate="visa" ${cfg.gates.visa ? "checked" : ""}><span>Work authorisation${role.visa.required ? "" : " (off by default: the posting doesn't require it)"}<br><span class="note">From Ohm's posting: “${esc(role.visa.src)}”</span></span></label>
         <label class="toggle"><input type="checkbox" data-gate="hard" ${cfg.gates.hard ? "checked" : ""}><span>${esc(role.axes.find((a) => a.id === role.gate).name)} at 3/5 or above<br><span class="note">The posting's first requirement.</span></span></label>
       </div>
       ${role.axes.map((a) => {
