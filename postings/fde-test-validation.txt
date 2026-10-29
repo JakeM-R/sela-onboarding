@@ -1,0 +1,59 @@
+Forward Deployed Engineer, Test & Validation
+•
+San Francisco, CA / Remote (US)
+Job type
+Full-time
+Role
+Engineering, Full stack
+Experience
+Any (new grads ok)
+Visa
+US citizen/visa only
+
+About the role
+
+Ohm is an enterprise AI platform that helps engineering teams transform how they develop, test, and validate physical products.
+
+Cursor and Claude Code reimagined how software products are developed. Our mission is to address the next frontier: bringing that same shift to how physical products are developed.
+
+Every complex physical product - a battery cell, an electric vehicle, a wearable device - is developed through a process that generates enormous quantities of data, almost none of which is used to its potential. This is precisely the kind of problem modern AI is suited to solve.
+
+We are recruiting exceptional scientists, engineers, and operators to join our mission to reimagine how products are engineered in the next decade.
+
+The opportunity
+
+Your role is to develop and ship the technical capabilities that will deliver the greatest measurable ROI for Ohm's customers. You will use AI tools to operate independently without a traditional R&D-to-engineering handoff.
+
+You bring the domain knowledge to identify what to build, the engineering capability to build it, and the commercial instinct to prioritize the changes that compound customer value fastest.
+
+You will work directly with the founder, the Head of Engineering, and the test and validation engineers at Ohm's customer accounts. You will write code, deploy analysis and planning capabilities, and own the engineering validity of production systems.
+
+What you'll do
+
+Build and own the test planning, execution, and analysis capabilities at the core of Ohm's platform, deployed in live customer programs where their output drives real qualification and release decisions.
+
+Work directly with customers to understand and overcome their hardest test and validation challenges: schedule risk, test coverage, resource allocation, requirements traceability.
+
+Build the domain knowledge infrastructure that makes Ohm's agentic analysis credible at the level of the most technically demanding validation programs.
+
+Bring frontier test and validation workflows into the platform before customers ask. This could include optimal test plan design, accelerated qualification, data-driven coverage analysis - translated into production capabilities with measurable customer impact.
+
+What you'll need
+
+Deep test and validation experience. You have spent years inside T&V programs for complex hardware - cell or pack qualification, environmental and reliability testing, or equivalent programs in aerospace, medical devices, or defense.
+
+Test engineering fluency. Design of experiments, reliability engineering, statistical inference on test data, requirements-driven test planning, and optimal test plan design.
+
+Applied data experience. You have used data science, data engineering, and/or machine learning techniques in industrial applications. You are fluent in Python
+
+AI-forward. You have thought carefully about where AI can accelerate hardware test programs, and can give concrete examples of using AI or data-driven methods in your own work
+
+What will set you apart
+
+An advanced STEM degree (e.g. MS or PhD in engineering or the physical sciences)
+
+A point of view on where the industry's standard approaches to validation are incomplete, and what modern hardware development should do instead
+
+Experience owning a full qualification program
+
+Wondering if you're a good fit? We believe in investing in our teammates, and value candidates who can bring their own diverse experiences to our teams, even if you aren't a 100% skill or experience match. If some of what we've outlined above describes you, we'd love to hear from you.
