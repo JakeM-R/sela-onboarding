@@ -31,6 +31,8 @@ There are 8 synthetic applicants per role, labelled "Demo applicants, not real p
 - A strong T&V or AE candidate who needs sponsorship → pass on the visa gate. A Chief of Staff candidate in London who needs sponsorship isn't penalised.
 - A strong Chief of Staff candidate with a thin CV → screen.
 - A strong engineer with no generalist breadth, applying for Chief of Staff → pass.
+
+The Chief of Staff tab also has one real CV, marked "Real CV": the builder's own, with contact details left out.
 - A data scientist who lists T&V terms only in the skills list and summary → pass on the must-have gate.
 - An SMB rep with many small inbound deals → pass (under six figures).
 

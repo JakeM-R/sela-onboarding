@@ -30,9 +30,11 @@ test("every criterion, gate and nice-to-have line is copied word for word from O
   }
 });
 
-test("eight demo applicants per role, all labelled synthetic", () => {
-  for (const r of ROLES) assert.equal(DEMO.filter((a) => a.role === r.id).length, 8);
-  for (const a of DEMO) assert.match(a.text.split("\n")[0], /^Synthetic \d+$/);
+test("eight synthetic demo applicants per role, plus one real CV marked as such", () => {
+  for (const r of ROLES) assert.equal(DEMO.filter((a) => a.role === r.id && !a.real).length, 8);
+  for (const a of DEMO.filter((x) => !x.real)) assert.match(a.text.split("\n")[0], /^Synthetic \d+$/);
+  assert.equal(DEMO.filter((a) => a.real).map((a) => a.id).join(), "jake");
+  assert.doesNotMatch(demo("jake").text, /@|\+44|linkedin/i, "contact details stay off the page");
   assert.match(html, /Demo applicants, not real people/);
 });
 

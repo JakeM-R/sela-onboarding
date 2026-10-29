@@ -579,7 +579,7 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
       axes: [
         { id: "cos_own", name: "Autonomous: decides, doesn't wait, moves fast", weight: 3,
           src: "Autonomous: you make most decisions yourself, don't wait for permission, and move fast",
-          terms: ["without being asked", "from scratch", "took over", "owned", "founded", "co-founded", "started", "set up", "end to end", "end-to-end", "first hire", "first operations hire", "decided"],
+          terms: ["without being asked", "from scratch", "took over", "owned", "drove", "designed and built", "built and shipped", "promoted", "founded", "co-founded", "started", "set up", "end to end", "end-to-end", "first hire", "first operations hire", "decided"],
           anchors: { 1: "Only ever worked to someone else's plan.", 3: "Took ownership of something beyond their remit, with a result.", 5: "Repeatedly picked up what was breaking without being asked, made the call and shipped a measurable fix." },
           trial: "Here are five things breaking this week (a list from the CEO). Pick the two you'd fix first, say why in three lines, and fix one by the end of the day." },
         { id: "cos_general", name: "Strong generalist across recruiting, content and operations", weight: 2,
@@ -594,7 +594,7 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
           trial: "Write a send-ready cold sequence to five engineering leaders at target accounts, and one LinkedIn post announcing a customer result." },
         { id: "cos_tech", name: "Technical background, comfortable with engineers and scientists", weight: 1, edu: true,
           src: "Technical background: STEM degree or equivalent preferred, and you feel comfortable working in a highly technical environment with engineers and scientists",
-          terms: ["engineering", "engineers", "scientists", "physics", "chemistry", "mathematics", "statistics", "computer science", "computer sciences", "materials science", "Python", "SQL", "BS", "BEng", "MEng", "BSc"],
+          terms: ["engineering", "engineers", "scientists", "physics", "chemistry", "mathematics", "statistics", "computer science", "computer sciences", "materials science", "Python", "SQL", "full-stack", "AI agent", "BS", "BEng", "MEng", "BSc"],
           anchors: { 1: "No STEM degree or technical work.", 3: "A STEM degree, or real work alongside engineers.", 5: "Technical work of their own, plus a record of operating alongside engineers and scientists." },
           trial: "Draft answers to one customer's security questionnaire, and flag the questions that need an engineer and why." },
       ],
@@ -622,7 +622,7 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
 // strong, weak and edge cases the rubric must sort correctly (checked in tests/engine.test.mjs).
 // `days` is how long they've sat in their current stage, so the overdue list is live on every load.
 (function (root) {
-  const A = (id, role, stage, days, expect, text) => ({ id, role, stage, days, expect, demo: true, text: text.trim() });
+  const A = (id, role, stage, days, expect, text) => ({ id, role, stage, days, expect, demo: true, real: id === "jake", text: text.trim() });
   const DEMO = [
     // ---------- FDE, Test & Validation ----------
     A("tv1", "tv", "Applied", 3, "trial", `
@@ -904,6 +904,37 @@ BS Aerospace Engineering, Georgia Institute of Technology, 2015
 `),
 
     // ---------- Chief of Staff ----------
+    // The applicant's own CV (contact details left out). Not synthetic, and labelled as such on the page.
+    A("jake", "cos", "Applied", 1, "screen", `
+Jake Makking-Robinson
+US work authorization: E-3 visa eligible (Australian citizen), no lottery and not subject to the H-1B cap
+
+Experience
+Founder’s Analyst (Strategy & Operations), MyEdSpace (UK and US edtech startup), February 2026 - Present
+- Produced a full GTM plan for a proposed US market entry (SAT exam prep), covering positioning, pricing, sales motion and creative; presented to founders
+- Designed and built an AI customer support agent, iteratively refining its prompts, classification and escalation logic against live tickets; handles ~60% of inbound requests, absorbing ticket growth without additional support hires
+- Built and shipped multiple full-stack tools (Next.js, Supabase, Vercel) across customer-facing and internal use cases, including a diagnostic test that assesses student ability and gates reporting behind lead capture to drive top-of-funnel acquisition
+- Analyzed marketing and sales funnel data in SQL (Holistics) and Excel to identify drop-off points and inform commercial decisions
+Intern Consultant, Nous Group (global management consulting firm), August 2024 - December 2024
+- Authored sections of competitive RFQ responses across 4 bids, contributing to >A$100k of new project wins for the Perth office
+- Built data systems and process maps for a healthcare delivery model evaluation project, presenting findings to client stakeholders
+- Synthesized stakeholder interviews and quantitative data into recommendations for a multi-year state government report
+Chief of Staff (promoted from Founder’s Associate after 6 weeks), Our Kinds (sustainability-focused café supply chain startup), December 2021 - April 2023
+- Reported to the founder across finance, operations and investor relations, covering commercial and reporting work end to end
+- Drove the finance workstream behind a successful A$350k+ raise: financial model, investor reporting and accounting operations
+- Set unit economics for the business through product and internal cost-pricing models supporting delivery to 20+ cafés across Western Australia
+- Built the impact-data system that quantified and verified 100,000+ single-use cups avoided, the company’s core impact metric
+
+Education
+Master in Management, INSEAD, 2023 - 2024
+- GMAT Score: 720
+- Coursework: Valuation, Strategy, Process and Operations Management
+Bachelor of Commerce, The University of Western Australia, 2020 - 2023
+- Majors: Finance and Management
+- Graduated with Distinction (75% weighted average)
+International Exchange Semester, Trinity College Dublin, Spring 2023
+- Coursework: Investment Analysis, Entrepreneurship, Corporate Finance
+`),
     A("cos1", "cos", "Applied", 3, "trial", `
 Synthetic 17
 San Francisco, CA
@@ -1091,7 +1122,7 @@ Cold calling, recruiting, operations, Notion, team player
     return `<li class="card" id="app-${a.id}">
       <button class="row" type="button" aria-expanded="${open}" data-toggle="${a.id}">
         <div>
-          <span class="name">${esc(r.name)}</span>${a.demo ? "" : `<span class="tag">Pasted</span>`}<span class="meta">${esc(a.stage)} · ${d} day${d === 1 ? "" : "s"}</span>
+          <span class="name">${esc(r.name)}</span>${a.real ? `<span class="tag">Real CV</span>` : a.demo ? "" : `<span class="tag">Pasted</span>`}<span class="meta">${esc(a.stage)} · ${d} day${d === 1 ? "" : "s"}</span>
           <p class="reason">${esc(r.reason)}</p>
           ${quote}
         </div>
@@ -1159,6 +1190,7 @@ Cold calling, recruiting, operations, Notion, team player
     const count = (d) => list.filter((a) => a.result.decision === d).length;
     const n = (k, one, many) => `${k} ${k === 1 ? one : many}`;
     $("roleTitle").textContent = role.title + ".";
+    $("demoLabel").textContent = list.some((a) => a.real) ? "Demo applicants, not real people, except the one marked Real CV (the builder's own, contact details left out)" : "Demo applicants, not real people";
     $("tally").textContent = `${n(count("trial"), "work trial", "work trials")}, ${n(count("screen"), "phone screen", "phone screens")} and ${n(count("pass"), "pass", "passes")} from ${n(list.length, "applicant", "applicants")}. Sorted by decision, then score.`;
     let last = "";
     $("list").innerHTML = list.map((a) => {
