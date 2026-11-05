@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Onboarding Desk</title>
+<meta name="description" content="Add a new hire and get their first 30 days, every task owned and dated. Flags what's overdue across several starts and drafts the nudge to whoever owns it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400&display=swap" rel="stylesheet">
+<style>
+/* Look follows flowgenlabs.com (read from the live site, Nov 2026): near-black #0E1113 page, #15181C panels,
+   #252829 hairlines, cream #F9F5EA text, green #3EE89A as the live/done signal, amber #FFAF58, mono uppercase
+   eyebrows with a dot, light serif headings, cream buttons with dark text. Their heading face (Tiempos Headline)
+   is licensed, so Newsreader Light stands in. Inter and IBM Plex Mono are the faces their site uses.
+   The overdue red is not from their site; it's added because the board needs a third state. */
+:root {
+  --bg: #0e1113;
+  --surface: #15181c;
+  --surface-2: #121518;
+  --line: #252829;
+  --line-2: #1d2022;
+  --ink: #f9f5ea;
+  --ink-2: rgba(249, 245, 234, 0.68);
+  --ink-3: rgba(249, 245, 234, 0.48);
+  --green: #3ee89a;
+  --green-soft: rgba(62, 232, 154, 0.09);
+  --green-line: rgba(62, 232, 154, 0.35);
+  --amber: #ffaf58;
+  --amber-soft: rgba(255, 175, 88, 0.1);
+  --red: #ff8473;
+  --red-soft: rgba(255, 132, 115, 0.1);
+  --violet: #a9a1e9;
+  --btn: #f9f5ea;
+  --btn-ink: #0d1012;
+  --font-display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f9f5ea; --surface: #f1ecdf; --surface-2: #f4f0e5; --line: #e5dfce; --line-2: #ece6d7;
+    --ink: #0d1012; --ink-2: rgba(13, 16, 18, 0.7); --ink-3: rgba(13, 16, 18, 0.52);
+    --green: #12804e; --green-soft: rgba(18, 128, 78, 0.09); --green-line: rgba(18, 128, 78, 0.35);
+    --amber: #995a00; --amber-soft: rgba(153, 90, 0, 0.09); --red: #b3321f; --red-soft: rgba(179, 50, 31, 0.08);
+    --violet: #5a4fc4; --btn: #0d1012; --btn-ink: #f9f5ea;
+    color-scheme: light;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--font-ui); }
+.demo-strip {
+  font: 12px/1.4 var(--font-mono); letter-spacing: 0.02em; color: var(--ink-2); text-align: center;
+  padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2);
+}
+.demo-strip b { color: var(--ink); font-weight: 500; }
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-block: 36px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px;
+}
+.eyebrow {
+  font: 500 11.5px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex: none; }
+.eyebrow.plain::before { display: none; }
+.eyebrow.red::before { background: var(--red); }
+header { display: grid; gap: 14px; }
+h1 {
+  font: 300 46px/1.08 var(--font-display); letter-spacing: -0.02em; margin: 0; max-width: 820px; text-wrap: balance;
+}
+.sub { margin: 0; color: var(--ink-2); font-size: 16px; max-width: 62ch; }
+.steps { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.steps li { padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.steps li + li { border-left: 1px solid var(--line); }
+.steps .n { font: 500 11.5px var(--font-mono); color: var(--green); letter-spacing: 0.06em; }
+.steps b { font-weight: 600; font-size: 14.5px; }
+.steps span:last-child { color: var(--ink-2); font-size: 13.5px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tabs button {
+  font: 500 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;
+  border: 0; border-bottom: 2px solid transparent; background: none; color: var(--ink-3);
+  padding: 13px 14px 12px; cursor: pointer; white-space: nowrap;
+}
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--green); }
+.tabs button:hover { color: var(--ink); }
+.panel { display: grid; gap: 22px; min-width: 0; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button.btn {
+  font: 500 13.5px/1 var(--font-ui); background: var(--btn); color: var(--btn-ink); border: 1px solid var(--btn);
+  border-radius: 5.4px; padding: 10px 14px; cursor: pointer; white-space: nowrap;
+}
+button.btn:hover { opacity: 0.9; }
+button.ghost {
+  font: 500 13px/1 var(--font-ui); background: transparent; color: var(--ink); border: 1px solid var(--line);
+  border-radius: 5.4px; padding: 9px 12px; cursor: pointer; white-space: nowrap;
+}
+button.ghost:hover { border-color: var(--ink-3); }
+button.chip {
+  font: 13px/1.2 var(--font-ui); background: var(--surface); color: var(--ink-2); border: 1px solid var(--line);
+  border-radius: 99px; padding: 6px 11px; cursor: pointer; text-align: left;
+}
+button.chip:hover { color: var(--ink); border-color: var(--ink-3); }
+:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.hint { color: var(--ink-3); font-size: 13px; margin: 0; }
+.card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); min-width: 0; }
+
+/* Blocked strip */
+.blocked { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+.blocked > div { padding: 20px; min-width: 0; display: grid; gap: 14px; align-content: start; }
+.blocked > div + div { border-left: 1px solid var(--line); }
+.verdict { font: 300 26px/1.2 var(--font-display); letter-spacing: -0.01em; margin: 0; text-wrap: pretty; }
+.owners { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.owners button {
+  width: 100%; text-align: left; cursor: pointer; display: grid; grid-template-columns: 26px 1fr auto; gap: 4px 10px; align-items: baseline;
+  background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; color: var(--ink);
+}
+.owners button:hover { border-color: var(--ink-3); }
+.owners button[aria-pressed="true"] { border-color: var(--red); background: var(--red-soft); }
+.owners .rank { font: 500 12px var(--font-mono); color: var(--ink-3); }
+.owners .who { font-weight: 600; }
+.owners .who small { font-weight: 400; color: var(--ink-3); font-size: 13px; }
+.owners .count { font: 500 12px var(--font-mono); color: var(--red); text-transform: uppercase; letter-spacing: 0.04em; }
+.owners .what { grid-column: 2 / 4; font-size: 13.5px; color: var(--ink-2); }
+.nudge-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+pre.msg {
+  margin: 0; white-space: pre-wrap; word-break: break-word; font: 13.5px/1.6 var(--font-ui); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; padding: 14px 16px;
+}
+.clear { display: flex; gap: 10px; align-items: center; color: var(--ink-2); }
+
+/* Hire columns */
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.col { padding: 18px; display: grid; gap: 14px; align-content: start; }
+.col-top { display: grid; gap: 6px; }
+.col-top .row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.col h3 { font: 400 23px/1.15 var(--font-display); letter-spacing: -0.01em; margin: 0; }
+.col .meta { font-size: 13px; color: var(--ink-3); margin: 0; }
+.col .meta b { color: var(--ink-2); font-weight: 500; }
+button.x { border: 0; background: none; color: var(--ink-3); cursor: pointer; font: 12px var(--font-mono); padding: 2px 4px; }
+button.x:hover { color: var(--red); }
+.ready { display: grid; gap: 8px; }
+.ready-line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ready-num { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; }
+.ready-num b { font: 300 30px/1 var(--font-display); color: var(--ink); margin-right: 2px; }
+.bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--green); border-radius: 99px; transition: width 0.25s ease; }
+.flags { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { font: 500 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; padding: 5px 7px; border-radius: 4px; white-space: nowrap; }
+.pill.overdue { color: var(--red); background: var(--red-soft); }
+.pill.at_risk { color: var(--amber); background: var(--amber-soft); }
+.pill.done { color: var(--green); background: var(--green-soft); }
+.pill.not_started { color: var(--ink-3); background: var(--surface); }
+.pill.ok { color: var(--green); background: var(--green-soft); }
+.mock { background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
+.tasks { list-style: none; margin: 0; padding: 0; display: grid; }
+.task { display: grid; grid-template-columns: 20px 1fr; gap: 2px 8px; padding: 8px 0; border-top: 1px solid var(--line-2); align-items: start; }
+.task:first-child { border-top: 0; }
+.task input { margin: 3px 0 0; width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; }
+.task label { cursor: pointer; font-size: 14px; line-height: 1.4; }
+.task.done label { color: var(--ink-3); text-decoration: line-through; }
+.task .tm { grid-column: 2; font-size: 12.5px; color: var(--ink-3); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.task.overdue .tm .when { color: var(--red); }
+.task.at_risk .tm .when { color: var(--amber); }
+details.all { border-top: 1px solid var(--line); padding-top: 10px; }
+details.all summary { cursor: pointer; font: 500 12px var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); }
+details.all summary:hover { color: var(--ink); }
+.phase { margin-top: 12px; }
+.phase h4 { margin: 0 0 2px; font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--ink-3); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+
+/* Forms */
+.form { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; padding: 18px; align-items: end; }
+.form label { display: grid; gap: 6px; font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); min-width: 0; }
+select, input[type="text"], input[type="date"], input[type="number"] {
+  width: 100%; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px;
+  font: 14px var(--font-ui); color: var(--ink); text-transform: none; letter-spacing: 0;
+}
+.plan-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.plan-head h3 { font: 400 23px/1.2 var(--font-display); margin: 0; }
+.phases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.phases .mock { align-content: start; }
+.ptask { padding: 8px 0; border-top: 1px solid var(--line-2); font-size: 13.5px; display: grid; gap: 2px; }
+.ptask:first-of-type { border-top: 0; }
+.ptask small { color: var(--ink-3); font-size: 12px; }
+.ptask .src { color: var(--violet); font-size: 12px; }
+.note { padding: 12px 14px; border-radius: 10px; background: var(--amber-soft); color: var(--ink); font-size: 14px; }
+
+/* Ask */
+.askbar { display: flex; gap: 10px; padding: 16px; flex-wrap: wrap; }
+.askbar input { flex: 1 1 260px; }
+.examples { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.thread { display: grid; gap: 14px; }
+.qa { padding: 18px; display: grid; gap: 12px; }
+.qa .q { font: 400 21px/1.25 var(--font-display); margin: 0; }
+.qa .a { margin: 0; font-size: 15px; }
+.qa .from { font-size: 12.5px; color: var(--ink-3); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.score { font: 500 12px var(--font-mono); color: var(--ink-2); }
+.meter { position: relative; height: 6px; background: var(--line); border-radius: 99px; max-width: 320px; }
+.meter span { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: var(--green); }
+.meter.low span { background: var(--amber); }
+.meter i { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); border-radius: 1px; }
+
+/* How it works */
+.how { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.how .card { padding: 18px; display: grid; gap: 10px; align-content: start; }
+.how h3 { font: 400 21px/1.2 var(--font-display); margin: 0; }
+.how p, .how li { font-size: 14px; color: var(--ink-2); margin: 0; }
+.how ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+textarea.json {
+  width: 100%; min-height: 360px; resize: vertical; background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 8px; padding: 12px; font: 12.5px/1.5 var(--font-mono); tab-size: 2;
+}
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.status { font-size: 13px; color: var(--ink-2); }
+.status.err { color: var(--red); }
+.sources { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.sources li { display: grid; gap: 4px; }
+.sources blockquote { margin: 0; padding-left: 10px; border-left: 2px solid var(--violet); color: var(--ink); font-size: 13.5px; }
+.sources a, footer a { color: var(--ink); text-underline-offset: 3px; }
+.sources small { color: var(--ink-3); }
+
+footer { border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 8px; font-size: 13px; color: var(--ink-3); }
+footer p { margin: 0; max-width: 92ch; }
+footer q { color: var(--ink-2); }
+
+@media (max-width: 900px) {
+  .blocked { grid-template-columns: 1fr; }
+  .blocked > div + div { border-left: 0; border-top: 1px solid var(--line); }
+  .form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .phases { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .how { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .wrap { padding-block: 22px 56px; gap: 22px; }
+  h1 { font-size: 34px; }
+  .sub { font-size: 15px; }
+  .steps { grid-template-columns: 1fr; }
+  .steps li + li { border-left: 0; border-top: 1px solid var(--line); }
+  .steps li { padding: 9px 14px; grid-template-columns: 28px 1fr; gap: 0 6px; }
+  .steps li > span:last-child { display: none; }
+  .verdict { font-size: 22px; }
+  .blocked > div { padding: 16px; }
+  .cols { grid-template-columns: 1fr; }
+  .form { grid-template-columns: 1fr; }
+  .phases { grid-template-columns: 1fr; }
+  .tabs button { padding: 12px 10px 11px; font-size: 11px; }
+  .owners .what { grid-column: 1 / 4; }
+}
+@media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+</style>
+</head>
+<body>
+<div class="demo-strip"><b>Demo:</b> generic hires, owners and dates. Built by Jake Makking-Robinson for FlowGen Labs.</div>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Onboarding desk</span>
+    <h1>Add a new hire. Get their first 30 days, every task owned and dated.</h1>
+    <p class="sub">No onboarding spreadsheet to keep up to date, and no one asking “who was meant to set up my access?”</p>
+    <ol class="steps">
+      <li><span class="n">01</span><b>Pick a role and start date</b><span>Forward Deployed Engineer, Founding AE, SAP Technical Lead, or any other open role.</span></li>
+      <li><span class="n">02</span><b>Get the plan</b><span>Access, security training, which deployment they shadow, and their first-week meetings, each with an owner and a due date.</span></li>
+      <li><span class="n">03</span><b>See what's blocked</b><span>Overdue tasks are flagged, and a nudge is drafted to whoever owns them.</span></li>
+    </ol>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button role="tab" id="tab-board" aria-controls="panel-board" aria-selected="true">Board</button>
+    <button role="tab" id="tab-add" aria-controls="panel-add" aria-selected="false">Add a hire</button>
+    <button role="tab" id="tab-ask" aria-controls="panel-ask" aria-selected="false">Ask</button>
+    <button role="tab" id="tab-how" aria-controls="panel-how" aria-selected="false">How it works</button>
+  </nav>
+
+  <!-- Board -->
+  <div class="panel" id="panel-board" role="tabpanel" aria-labelledby="tab-board">
+    <section class="card blocked" aria-labelledby="h-blocked">
+      <div>
+        <span class="eyebrow red" id="h-blocked">Blocked</span>
+        <p class="verdict" id="verdict"></p>
+        <ol class="owners" id="owners"></ol>
+        <p class="clear" id="allClear" hidden><span class="pill ok">All clear</span> Nothing is overdue.</p>
+      </div>
+      <div id="nudgeBox">
+        <div class="nudge-head">
+          <span class="eyebrow plain" id="nudgeTitle">Drafted nudge</span>
+          <button class="ghost" id="copyNudge">Copy nudge</button>
+        </div>
+        <pre class="msg" id="nudgeText"></pre>
+        <p class="hint">Drafted, not sent. One line per task, naming the hire and their start date.</p>
+      </div>
+    </section>
+    <div class="legend" aria-label="Task states">
+      <span><i class="pill overdue">Overdue</i> due date passed, not done</span>
+      <span><i class="pill at_risk">At risk</i> due within <span id="legendDays">2</span> days, not started</span>
+      <span><i class="pill done">Done</i> ticked</span>
+    </div>
+    <div class="cols" id="cols"></div>
+    <p class="hint">Ticks save in this browser only. Dates are counted from today, so the demo hires always start about 6, 13 and 20 days out (on a weekday).</p>
+  </div>
+
+  <!-- Add a hire -->
+  <div class="panel" id="panel-add" role="tabpanel" aria-labelledby="tab-add" hidden>
+    <form class="card form" id="addForm" autocomplete="off">
+      <label>Name<input type="text" id="fName" required></label>
+      <label>Role<select id="fRole"></select></label>
+      <label>Start date<input type="date" id="fStart" required></label>
+      <label>Manager<select id="fManager"></select></label>
+      <label>Deployment to shadow<select id="fDeploy"></select></label>
+    </form>
+    <div class="plan-head">
+      <div>
+        <span class="eyebrow">Generated plan</span>
+        <h3 id="planTitle"></h3>
+      </div>
+      <div class="actions"><span class="status" id="addStatus" role="status" aria-live="polite"></span><button class="btn" id="addBtn">Add to board</button></div>
+    </div>
+    <p class="note" id="planNote" hidden></p>
+    <div class="phases" id="phases"></div>
+    <p class="hint">Each due date is the start date plus the task's day offset from the role playbook. Violet lines are the job-posting text the task comes from. Edit the rules in How it works.</p>
+  </div>
+
+  <!-- Ask -->
+  <div class="panel" id="panel-ask" role="tabpanel" aria-labelledby="tab-ask" hidden>
+    <form class="card askbar" id="askForm" autocomplete="off">
+      <input type="text" id="askInput" placeholder="Ask what a new hire would ask, e.g. when does my laptop arrive?" aria-label="Question">
+      <button class="btn" type="submit">Ask</button>
+    </form>
+    <div class="examples" id="examples"><span class="hint">Try:</span></div>
+    <p class="hint"><b>Demo handbook. In production this would read your real docs.</b> Matching is keyword retrieval (TF-IDF over <span id="hbCount">12</span> entries), not a language model. Below a match score of <span id="hbThresh"></span> it doesn't guess: it routes the question to the owner of the closest entry.</p>
+    <div class="thread" id="thread"></div>
+  </div>
+
+  <!-- How it works -->
+  <div class="panel" id="panel-how" role="tabpanel" aria-labelledby="tab-how" hidden>
+    <div class="how">
+      <div class="card">
+        <span class="eyebrow">The rules</span>
+        <h3>Dates come from the start date, not a spreadsheet</h3>
+        <ul>
+          <li>Every task has an owner and a day offset. “Laptop ordered: day −14, Operations” is due 14 days before the start date. A due date that lands on a weekend moves to the Friday before.</li>
+          <li>Tasks fall into Before day 1 (offset below 0), Week 1 (0 to 6), Weeks 2–4 (7 to 27) and Day 30 (28+).</li>
+          <li><b>Overdue</b>: the due date has passed and it isn't ticked. <b>At risk</b>: due within <span id="ruleDays">2</span> days and not ticked.</li>
+          <li>The blocked strip ranks owners by how many hires their overdue tasks hold up, then by task count, then by how late.</li>
+          <li>A role gets the common tasks, its family's tasks (deployment or sales), then its own. “manager” resolves to the manager picked for that hire.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="eyebrow">Sources</span>
+        <h3>Where the role tasks come from</h3>
+        <p>Each role-specific task quotes the line in FlowGen's posting that justifies it. Everything else is a generic default, labelled as such.</p>
+        <ul class="sources" id="sources"></ul>
+      </div>
+      <div class="card">
+        <span class="eyebrow">Configuration</span>
+        <h3>Role playbooks</h3>
+        <p>Owners, the at-risk window, common tasks, role families and per-role tasks. Edit and apply: the board and the plan generator update.</p>
+        <textarea class="json" id="cfgText" spellcheck="false" aria-label="Role playbooks JSON"></textarea>
+        <div class="actions"><button class="btn" id="cfgApply">Apply</button><button class="ghost" id="cfgReset">Reset to default</button><span class="status" id="cfgStatus" role="status" aria-live="polite"></span></div>
+      </div>
+      <div class="card">
+        <span class="eyebrow">Configuration</span>
+        <h3>Handbook and threshold</h3>
+        <p>The entries the Ask tab answers from, and the match score below which it routes to a person instead of answering.</p>
+        <textarea class="json" id="hbText" spellcheck="false" aria-label="Handbook JSON"></textarea>
+        <div class="actions"><button class="btn" id="hbApply">Apply</button><button class="ghost" id="hbReset">Reset to default</button><span class="status" id="hbStatus" role="status" aria-live="polite"></span></div>
+      </div>
+    </div>
+    <div class="actions"><button class="ghost" id="resetAll">Clear ticks and added hires</button><span class="hint">Everything here is saved in this browser only. No account, no server, nothing sent.</span></div>
+  </div>
+
+  <footer>
+    <p>Answers <q>Build practical systems and use AI tools to automate repetitive work so the team can focus on product and customer outcomes.</q> and <q>You'll write the board memo in the morning and fix the onboarding spreadsheet in the afternoon.</q> From FlowGen's Chief of Staff, Founder's Office posting.</p>
+    <p>A working draft by Jake Makking-Robinson, not a FlowGen product. Hires, owners and customers are generic (Hire A–C, Owner A–E, Company A–C). Role tasks are drawn from FlowGen's public job postings; the SOC 1 / SOC 2 training default is from flowgenlabs.com. Static page: no backend, no model calls, no data leaves the browser.</p>
+  </footer>
+</div>
+
+<script id="config">
+// Default configuration. Editable in the How it works tab. "source" on a task is the line it rests on.
+(function (root) {
+  const ASHBY = "https://jobs.ashbyhq.com/FlowGen%20Labs/";
+  const URLS = {
+    "Forward Deployed Engineer": ASHBY + "0ed13123-23d9-47bc-84f2-b216786ab164",
+    "SAP Technical Lead": ASHBY + "7a556c21-6e2f-4238-87b4-ee5afcb81a55",
+    "SAP Functional Consultant": ASHBY + "94186c6e-506d-4f10-9c27-8339981129d1",
+    "Founding Account Executive": ASHBY + "85f7c138-1f81-4407-a761-d825d00e4e31",
+    "Strategic Account Executive": ASHBY + "b73a40b3-c5f4-4c62-9dbb-ba2a952dbc5c",
+    site: "https://flowgenlabs.com",
+  };
+  const src = (from, quote) => ({ from, url: URLS[from] || URLS.site, quote });
+
+  const CONFIG = {
+    owners: {
+      ops: { name: "Owner A", team: "Operations" },
+      it: { name: "Owner B", team: "IT & security" },
+      founder: { name: "Owner C", team: "Founder" },
+      eng: { name: "Owner D", team: "Engineering lead" },
+      sales: { name: "Owner E", team: "Sales lead" },
+    },
+    rules: { atRiskDays: 2 },
+    deployments: ["Company A", "Company B", "Company C"],
+    openRoles: [
+      "Forward Deployed Engineer", "SAP Technical Lead", "SAP Functional Consultant",
+      "Founding Account Executive", "Strategic Account Executive", "Staff Software Engineer",
+      "Founding Research Engineer", "GTM Engineer", "AI Strategist", "Strategic AI Partnerships Lead",
+      "Chief of Staff, Founder's Office",
+    ],
+    common: [
+      { id: "paperwork", task: "Contract and payroll paperwork filed", owner: "ops", day: -14 },
+      { id: "laptop-ordered", task: "Laptop ordered", owner: "ops", day: -14 },
+      { id: "buddy", task: "Onboarding buddy assigned", owner: "manager", day: -7 },
+      { id: "accounts", task: "Email, Slack and GitHub accounts created", owner: "it", day: -7 },
+      { id: "laptop-shipped", task: "Laptop shipped", owner: "ops", day: -5 },
+      { id: "day1-schedule", task: "Day-1 schedule sent to the new hire", owner: "manager", day: -3 },
+      { id: "intros", task: "Team welcome and intros", owner: "manager", day: 0 },
+      { id: "founder-1-1", task: "Founder 1:1", owner: "founder", day: 1 },
+      { id: "security-training", task: "Security and confidentiality training completed", owner: "it", day: 2,
+        source: src("site", "SOC 1 and SOC 2 certified with continuous monitoring.") },
+      { id: "how-we-deploy", task: "“How we deploy” walkthrough", owner: "eng", day: 3 },
+      { id: "goals", task: "30-day goals agreed", owner: "manager", day: 4 },
+      { id: "week2-checkin", task: "Week-2 check-in", owner: "manager", day: 10 },
+      { id: "day30", task: "30-day check-in with a founder", owner: "founder", day: 29 },
+    ],
+    families: {
+      deployment: {
+        label: "Deployment roles",
+        tasks: [
+          { id: "sandbox-request", task: "SAP sandbox access requested", owner: "it", day: -10,
+            source: src("Forward Deployed Engineer", "You will work directly with stakeholders inside complex SAP environments and help turn customer needs into repeatable platform improvements.") },
+          { id: "sandbox-ready", task: "SAP sandbox access confirmed working", owner: "it", day: -2,
+            source: src("SAP Functional Consultant", "Strong understanding of SAP ECC and/or S/4HANA environments") },
+          { id: "env-readthrough", task: "Read-through of the SAP environment and AOPs at {deployment}", owner: "eng", day: 4,
+            source: src("Forward Deployed Engineer", "Write and maintain key agent-building artifacts, including AOPs, integration specs, evaluation plans, and customer-facing technical documentation.") },
+          { id: "pairing", task: "Pairing week with a senior engineer", owner: "eng", day: 7,
+            source: src("Forward Deployed Engineer", "Design the right abstractions for repeatable deployments and partner closely with the Platform team to implement them.") },
+          { id: "shadow", task: "Shadow the live deployment at {deployment}", owner: "eng", day: 8,
+            source: src("Forward Deployed Engineer", "drive launches from first customer conversation through production iteration") },
+        ],
+      },
+      sales: {
+        label: "Sales roles",
+        tasks: [
+          { id: "crm", task: "CRM seat created", owner: "it", day: -3,
+            source: src("Founding Account Executive", "Forecast accurately, manage pipeline, and close six-figure and above ACV deals") },
+          { id: "pitch", task: "Pitch walkthrough with a founder", owner: "founder", day: 2,
+            source: src("Founding Account Executive", "partner closely with the founding team on strategic deals") },
+          { id: "handover", task: "Named-account and pipeline handover", owner: "sales", day: 5,
+            source: src("Founding Account Executive", "You’ll own a portfolio of named enterprise accounts") },
+          { id: "calls", task: "Sit in on three customer calls", owner: "sales", day: 9,
+            source: src("Founding Account Executive", "Run multi-stakeholder sales cycles across finance, operations, IT, SAP, procurement, security, and legal") },
+          { id: "security-pack", task: "Walkthrough of the security and procurement review pack", owner: "it", day: 12,
+            source: src("Founding Account Executive", "security, legal and procurement review") },
+          { id: "first-trip", task: "First customer trip booked", owner: "ops", day: 14,
+            source: src("Founding Account Executive", "Travel regularly for customer meetings across the US and Europe") },
+        ],
+      },
+    },
+    roles: {
+      "Forward Deployed Engineer": {
+        family: "deployment",
+        tasks: [
+          { id: "fde-guardrail", task: "Configure and validate one guardrail in the sandbox, reviewed by a senior engineer", owner: "eng", day: 14,
+            source: src("Forward Deployed Engineer", "Configure and validate guardrails so agents operate safely, compliantly, and predictably in real-world enterprise scenarios.") },
+        ],
+      },
+      "SAP Technical Lead": {
+        family: "deployment",
+        tasks: [
+          { id: "tl-standards", task: "Review of transport strategy and ABAP standards", owner: "eng", day: 10,
+            source: src("SAP Technical Lead", "Solid NetWeaver fundamentals: AS ABAP, Gateway/OData provisioning, transport strategy, performance tuning") },
+          { id: "tl-delivery", task: "Lead one customer-facing delivery session", owner: "manager", day: 21,
+            source: src("SAP Technical Lead", "This is a hybrid, generalist role that blends core platform design and engineering with hands-on, customer-facing delivery.") },
+        ],
+      },
+      "SAP Functional Consultant": {
+        family: "deployment",
+        tasks: [
+          { id: "fc-workshop", task: "Sit in on a customer process-mapping workshop", owner: "manager", day: 9,
+            source: src("SAP Functional Consultant", "Support customer workshops, discovery sessions, process mapping, and deployment planning") },
+          { id: "fc-trip", task: "First customer trip booked", owner: "ops", day: 12,
+            source: src("SAP Functional Consultant", "Travel: Customer travel required") },
+          { id: "fc-validate", task: "Validate a sample of agent outputs against SAP data", owner: "eng", day: 18,
+            source: src("SAP Functional Consultant", "Validate agent outputs against business rules, SAP data, and customer operating procedures") },
+        ],
+      },
+      "Founding Account Executive": { family: "sales", tasks: [] },
+      "Strategic Account Executive": { family: "sales", tasks: [] },
+    },
+  };
+
+  const HANDBOOK = {
+    threshold: 0.35,
+    entries: [
+      { id: "sandbox", title: "SAP sandbox access", owner: "it",
+        asks: "who sets up my SAP sandbox; sandbox login credentials; SAP system access; sandbox not working",
+        answer: "Owner B (IT & security) requests your SAP sandbox access 10 days before your start date and checks it works 2 days before. Your login arrives by email. If it doesn't work on day 1, message Owner B directly." },
+      { id: "security", title: "Security and confidentiality training", owner: "it",
+        asks: "when is security training due; confidentiality training; compliance course deadline; SOC 2",
+        answer: "It's due by day 3, two days after your start date, and you need it done before you get access to any customer environment. FlowGen's public site lists SOC 1 and SOC 2 certification, so it covers how customer data and confidential information are handled." },
+      { id: "laptop", title: "Laptop", owner: "ops",
+        asks: "when does my laptop arrive; laptop shipping and delivery; which laptop do I get",
+        answer: "Owner A (Operations) orders your laptop 14 days before you start and ships it 5 days before, so it arrives before day 1. Reply to the shipping email if it hasn't arrived 2 days before your start." },
+      { id: "accounts", title: "Email, Slack and GitHub accounts", owner: "it",
+        asks: "when do I get my email; Slack account; GitHub access; work login and password",
+        answer: "Owner B creates your email, Slack and GitHub accounts 7 days before you start. Sign-in details go to your personal email." },
+      { id: "first-week", title: "Your first week", owner: "ops",
+        asks: "what happens on my first day; first week schedule; day one agenda; where do I go on day 1",
+        answer: "Your manager sends your day-1 schedule 3 days before you start. Week 1 is team intros on day 1, a founder 1:1 on day 2, security training by day 3, the “how we deploy” walkthrough on day 4 and 30-day goals on day 5." },
+      { id: "shadow", title: "Shadowing a live deployment", owner: "eng",
+        asks: "which deployment do I shadow; shadowing a customer; customer deployment; going on site",
+        answer: "Engineers and SAP consultants shadow a live customer deployment on day 9, with Owner D (Engineering lead). The customer is set when you're added to the board, based on what's live that week." },
+      { id: "readthrough", title: "Customer environment read-through", owner: "eng",
+        asks: "what should I read first; customer environment; AOPs; agent operating procedures documentation",
+        answer: "On day 5 you read through one customer's SAP environment and its AOPs (agent operating procedures) with Owner D, before you shadow a deployment." },
+      { id: "pairing", title: "Pairing with a senior engineer", owner: "eng",
+        asks: "who do I pair with; mentor; senior engineer; code review buddy",
+        answer: "From day 8 you pair with a senior engineer for a week. Owner D picks the pairing to match the deployment you're shadowing." },
+      { id: "crm", title: "CRM access and pipeline handover", owner: "sales",
+        asks: "when do I get CRM access; pipeline; my accounts; named accounts handover",
+        answer: "Owner B sets up your CRM seat 3 days before you start. Owner E (Sales lead) hands over your named accounts and open pipeline on day 6." },
+      { id: "calls", title: "Sitting in on customer calls", owner: "sales",
+        asks: "customer calls; sales calls; can I join a call; listen in on calls",
+        answer: "AEs sit in on three customer calls by day 10. Owner E picks calls at different stages, with different stakeholders in the room." },
+      { id: "travel", title: "Customer travel and expenses", owner: "ops",
+        asks: "travel; flights; hotel; booking a trip; expenses; reimbursement",
+        answer: "Owner A books customer travel. If your role travels, your first trip is booked in weeks 2–3. Submit receipts in the expense tool within 30 days." },
+      { id: "checkin", title: "30-day check-in", owner: "founder",
+        asks: "30 day review; check-in; how am I doing; feedback; goals",
+        answer: "You agree 30-day goals with your manager on day 5. On day 30 a founder (Owner C) runs a check-in against them." },
+    ],
+  };
+
+  root.DEFAULT_CONFIG = CONFIG;
+  root.DEFAULT_HANDBOOK = HANDBOOK;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+
+<script id="demo">
+// Three demo hires on overlapping start dates, counted from today. "done" lists tasks already ticked.
+(function (root) {
+  root.DEMO_HIRES = [
+    { id: "demo-a", name: "Hire A", role: "Forward Deployed Engineer", startIn: 6, manager: "Owner D", deployment: "Company A", demo: true,
+      done: ["paperwork", "buddy"] },
+    { id: "demo-b", name: "Hire B", role: "Founding Account Executive", startIn: 13, manager: "Owner E", deployment: "", demo: true,
+      done: ["paperwork"] },
+    { id: "demo-c", name: "Hire C", role: "SAP Technical Lead", startIn: 20, manager: "Owner D", deployment: "Company B", demo: true,
+      done: ["paperwork", "laptop-ordered"] },
+  ];
+  root.ASK_PRELOAD = ["Who sets up my SAP sandbox?", "Can I get a second monitor for my laptop?"];
+  root.ASK_EXAMPLES = ["When is security training due?", "When does my laptop arrive?", "Which deployment do I shadow?", "Is there a learning budget?"];
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+
+<script id="engine">
+// Pure logic: plan generation, task states, the blocked ranking, nudges and handbook retrieval. Runs under Node for tests.
+(function (root) {
+  const DAY = 86400000;
+  const PHASES = [
+    { id: "before", label: "Before day 1", min: -Infinity, max: -1 },
+    { id: "week1", label: "Week 1", min: 0, max: 6 },
+    { id: "weeks2_4", label: "Weeks 2–4", min: 7, max: 27 },
+    { id: "day30", label: "Day 30", min: 28, max: Infinity },
+  ];
+  const phaseOf = (day) => PHASES.find((p) => day >= p.min && day <= p.max).id;
+  const midnight = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const addDays = (d, n) => { const x = midnight(d); x.setDate(x.getDate() + n); return x; };
+  const diffDays = (a, b) => Math.round((midnight(b) - midnight(a)) / DAY);
+  const iso = (d) => { const x = midnight(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+  const parseISO = (s) => { const [y, m, d] = String(s).split("-").map(Number); return new Date(y, m - 1, d); };
+  const fmt = (d) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  const listAnd = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]);
+
+  function ownerName(cfg, key, hire) {
+    if (key === "manager") return hire.manager;
+    return cfg.owners[key] ? cfg.owners[key].name : key;
+  }
+  function teamOf(cfg, name) {
+    for (const o of Object.values(cfg.owners)) if (o.name === name) return o.team;
+    return "";
+  }
+  function tasksForRole(cfg, role) {
+    const r = cfg.roles[role] || {};
+    const fam = r.family && cfg.families[r.family] ? cfg.families[r.family].tasks : [];
+    return [...cfg.common, ...fam, ...(r.tasks || [])];
+  }
+  // Weekend dates move back to the Friday before, so nothing is due (or starts, for the demo hires) on a Saturday or Sunday.
+  const workday = (d) => { const w = d.getDay(); return w === 6 ? addDays(d, -1) : w === 0 ? addDays(d, -2) : d; };
+  const startOf = (hire, today) => (hire.startIn != null ? workday(addDays(today, hire.startIn)) : parseISO(hire.start));
+
+  function buildPlan(cfg, hire, today) {
+    const start = startOf(hire, today);
+    const dep = hire.deployment || "a current customer";
+    return tasksForRole(cfg, hire.role)
+      .map((t) => {
+        const owner = ownerName(cfg, t.owner, hire);
+        return {
+          id: t.id, task: t.task.replace(/\{deployment\}/g, dep), owner, team: teamOf(cfg, owner),
+          day: t.day, due: workday(addDays(start, t.day)), phase: phaseOf(t.day), source: t.source || null,
+        };
+      })
+      .sort((a, b) => a.day - b.day);
+  }
+
+  function status(task, done, today, atRiskDays) {
+    if (done) return "done";
+    const d = diffDays(today, task.due);
+    if (d < 0) return "overdue";
+    if (d <= atRiskDays) return "at_risk";
+    return "not_started";
+  }
+
+  function board(cfg, hires, doneMap, today) {
+    const atRiskDays = cfg.rules.atRiskDays;
+    return hires
+      .map((h) => {
+        const start = startOf(h, today);
+        const done = doneMap[h.id] || {};
+        const tasks = buildPlan(cfg, h, today).map((t) => ({
+          ...t, hireId: h.id, hire: h.name, role: h.role, start,
+          status: status(t, !!done[t.id], today, atRiskDays), late: Math.max(0, diffDays(t.due, today)),
+        }));
+        const open = tasks.filter((t) => t.status !== "done").sort((a, b) => a.due - b.due);
+        return {
+          hire: h, start, daysToStart: diffDays(today, start), tasks,
+          done: tasks.length - open.length, total: tasks.length, next: open.slice(0, 3),
+          overdue: tasks.filter((t) => t.status === "overdue"), atRisk: tasks.filter((t) => t.status === "at_risk"),
+        };
+      })
+      .sort((a, b) => a.start - b.start);
+  }
+
+  // Owners ranked by how many hires their overdue tasks hold up, then by count, then by how late.
+  function blocked(cols) {
+    const by = new Map();
+    for (const c of cols) for (const t of [...c.overdue, ...c.atRisk]) {
+      if (!by.has(t.owner)) by.set(t.owner, { owner: t.owner, team: t.team, overdue: [], atRisk: [] });
+      by.get(t.owner)[t.status === "overdue" ? "overdue" : "atRisk"].push(t);
+    }
+    return [...by.values()]
+      .filter((o) => o.overdue.length)
+      .map((o) => ({ ...o, hires: [...new Set(o.overdue.map((t) => t.hire))], maxLate: Math.max(...o.overdue.map((t) => t.late)) }))
+      .sort((a, b) => b.hires.length - a.hires.length || b.overdue.length - a.overdue.length || b.maxLate - a.maxLate);
+  }
+
+  function summary(cols, owners) {
+    if (!cols.length) return "No hires on the board.";
+    const behind = cols.filter((c) => c.overdue.length);
+    const soonest = Math.max(0, ...cols.map((c) => c.daysToStart));
+    let s = `${plural(cols.length, "hire")} start${cols.length === 1 ? "s" : ""} in the next ${plural(soonest, "day")}. `;
+    if (!behind.length) return s + "Nothing is overdue.";
+    s += `${behind.length === cols.length && cols.length > 1 ? "All " + cols.length : behind.length} ${behind.length === 1 ? "has" : "have"} overdue tasks`;
+    const top = owners[0];
+    if (!top) return s + ".";
+    const n = top.hires.length;
+    if (n === 1 && behind.length === 1) return `${s}, ${owners.length > 1 ? "most of them" : "all of them"} with ${top.owner}.`;
+    const them = n === behind.length ? (n === 2 ? "both" : "all of them") : `${n} of them`;
+    return `${s}, and ${top.owner} is holding up ${them}.`;
+  }
+
+  function nudge(o, atRiskDays) {
+    const line = (t) => `- ${t.task} for ${t.hire} (${t.role}, starts ${fmt(t.start)}): due ${fmt(t.due)}` +
+      (t.status === "overdue" ? `, ${plural(t.late, "day")} late` : "");
+    const n = o.overdue.length;
+    const out = [
+      `Hi ${o.owner},`, "",
+      `${n === 1 ? "One onboarding task" : `${n} onboarding tasks`} with you ${n === 1 ? "is" : "are"} past due, for ${listAnd(o.hires)}:`,
+      ...o.overdue.slice().sort((a, b) => a.start - b.start || b.late - a.late).map(line),
+    ];
+    if (o.atRisk.length) out.push("", `Also due in the next ${plural(atRiskDays, "day")}:`, ...o.atRisk.slice().sort((a, b) => a.due - b.due).map(line));
+    out.push("", "Could you reply with a date for each, or tell me who should pick them up?", "", "Thanks");
+    return out.join("\n");
+  }
+
+  // Handbook retrieval: TF-IDF cosine over title, typical questions and answer text.
+  const STOP = new Set(("a an the i im my me we you your yours is are am was be been do does did to of for in on at by with and or " +
+    "will can could should would when who whom what where how which it its this that these those from as if have has had get gets got " +
+    "there their our us up out about any some please into than then so not no just").split(" "));
+  const stem = (w) => (w.length > 3 ? w.replace(/(ings|ing|ed|es|s)$/, "") : w);
+  const tokens = (s) => String(s).toLowerCase().replace(/[’']/g, "").split(/[^a-z0-9]+/).filter((w) => w.length > 1 && !STOP.has(w)).map(stem);
+
+  function buildIndex(entries) {
+    const docs = entries.map((e) => [...tokens(e.title), ...tokens(e.title), ...tokens(e.asks || ""), ...tokens(e.asks || ""), ...tokens(e.answer)]);
+    const df = new Map();
+    docs.forEach((d) => new Set(d).forEach((w) => df.set(w, (df.get(w) || 0) + 1)));
+    const N = docs.length;
+    const idf = (w) => Math.log((N + 1) / ((df.get(w) || 0) + 1)) + 1;
+    const vec = (toks) => {
+      const tf = new Map();
+      toks.forEach((w) => tf.set(w, (tf.get(w) || 0) + 1));
+      const v = new Map();
+      let n = 0;
+      for (const [w, c] of tf) { const x = (1 + Math.log(c)) * idf(w); v.set(w, x); n += x * x; }
+      return { v, n: Math.sqrt(n) || 1 };
+    };
+    return { entries, vecs: docs.map(vec), vec };
+  }
+
+  function ask(index, q, threshold) {
+    const qv = index.vec(tokens(q));
+    const ranked = index.vecs
+      .map((d, i) => {
+        let dot = 0;
+        for (const [w, x] of qv.v) if (d.v.has(w)) dot += x * d.v.get(w);
+        return { entry: index.entries[i], score: qv.v.size ? dot / (qv.n * d.n) : 0 };
+      })
+      .sort((a, b) => b.score - a.score);
+    const top = ranked[0] || null;
+    return { question: q, top, ranked: ranked.slice(0, 3), confident: !!top && top.score >= threshold };
+  }
+
+  function escalation(cfg, res) {
+    const e = res.top && res.top.score > 0 ? res.top.entry : null;
+    const ownerKey = e ? e.owner : "ops";
+    const name = (cfg.owners[ownerKey] || {}).name || ownerKey;
+    const msg = [
+      `Hi ${name},`, "",
+      `A new hire asked: “${res.question}”`,
+      e ? `The handbook doesn't answer it clearly. The closest entry is “${e.title}”, which you own.` : "Nothing in the handbook matches it.",
+      "", "Could you reply to them, and add the answer to the handbook so the next person gets it?", "", "Thanks",
+    ].join("\n");
+    return { owner: name, team: (cfg.owners[ownerKey] || {}).team || "", entry: e, msg };
+  }
+
+  const api = { PHASES, phaseOf, midnight, addDays, workday, diffDays, iso, parseISO, fmt, tasksForRole, buildPlan, status, board, blocked, summary, nudge, tokens, buildIndex, ask, escalation };
+  root.Engine = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+
+<script>
+(function () {
+  const E = window.Engine;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const STORE = "flowgen-onboarding-desk-v1";
+  const today = E.midnight(new Date());
+
+  function load() {
+    try { const s = JSON.parse(localStorage.getItem(STORE) || "{}"); return s && typeof s === "object" ? s : {}; } catch (e) { return {}; }
+  }
+  const saved = Object.assign({ done: {}, added: [], config: null, handbook: null }, load());
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(saved)); } catch (e) { /* storage blocked: keep working in memory */ } }
+
+  let cfg = saved.config || clone(window.DEFAULT_CONFIG);
+  let hb = saved.handbook || clone(window.DEFAULT_HANDBOOK);
+  let index = E.buildIndex(hb.entries);
+
+  const hires = () => [...window.DEMO_HIRES, ...saved.added];
+  function doneMap() {
+    const m = {};
+    for (const h of hires()) {
+      m[h.id] = {};
+      for (const id of h.done || []) m[h.id][id] = true;
+      Object.assign(m[h.id], saved.done[h.id] || {});
+    }
+    return m;
+  }
+
+  async function copy(text, btn) {
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) {
+      const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select();
+      try { document.execCommand("copy"); } catch (e2) { /* ignore */ } t.remove();
+    }
+    const old = btn.textContent; btn.textContent = "Copied"; setTimeout(() => (btn.textContent = old), 1400);
+  }
+
+  // Tabs
+  const tabs = ["board", "add", "ask", "how"];
+  function show(name) {
+    for (const t of tabs) {
+      $("tab-" + t).setAttribute("aria-selected", String(t === name));
+      $("panel-" + t).hidden = t !== name;
+    }
+  }
+  for (const t of tabs) $("tab-" + t).addEventListener("click", () => show(t));
+  $("tab-board").parentElement.addEventListener("keydown", (e) => {
+    const i = tabs.findIndex((t) => $("tab-" + t).getAttribute("aria-selected") === "true");
+    const j = e.key === "ArrowRight" ? (i + 1) % tabs.length : e.key === "ArrowLeft" ? (i + tabs.length - 1) % tabs.length : -1;
+    if (j >= 0) { show(tabs[j]); $("tab-" + tabs[j]).focus(); }
+  });
+
+  // Board
+  let selectedOwner = null;
+  const openAll = new Set();
+
+  function whenText(t) {
+    if (t.status === "done") return `due ${E.fmt(t.due)}`;
+    const d = E.diffDays(today, t.due);
+    if (d < 0) return `${-d} day${d === -1 ? "" : "s"} late`;
+    if (d === 0) return "due today";
+    if (d === 1) return "due tomorrow";
+    return `due ${E.fmt(t.due)}`;
+  }
+  function taskLi(t) {
+    const cid = `cb-${t.hireId}-${t.id}`;
+    return `<li class="task ${t.status}">
+      <input type="checkbox" id="${cid}" data-hire="${esc(t.hireId)}" data-task="${esc(t.id)}"${t.status === "done" ? " checked" : ""}>
+      <label for="${cid}">${esc(t.task)}</label>
+      <span class="tm"><span>${esc(t.owner)}${t.team ? " · " + esc(t.team) : ""}</span><span class="when">${whenText(t)}</span>${t.status === "at_risk" ? `<span class="pill at_risk">At risk</span>` : ""}</span>
+    </li>`;
+  }
+  function startsText(c) {
+    const d = c.daysToStart;
+    return d > 1 ? `starts in ${d} days` : d === 1 ? "starts tomorrow" : d === 0 ? "starts today" : `day ${1 - d}`;
+  }
+
+  function renderBoard() {
+    const cols = E.board(cfg, hires(), doneMap(), today);
+    const owners = E.blocked(cols);
+    $("verdict").textContent = E.summary(cols, owners);
+    $("legendDays").textContent = cfg.rules.atRiskDays;
+    if (!owners.some((o) => o.owner === selectedOwner)) selectedOwner = owners[0] ? owners[0].owner : null;
+    $("owners").innerHTML = owners.map((o, i) => `<li><button type="button" data-owner="${esc(o.owner)}" aria-pressed="${o.owner === selectedOwner}">
+      <span class="rank">${String(i + 1).padStart(2, "0")}</span>
+      <span class="who">${esc(o.owner)} <small>${esc(o.team)}</small></span>
+      <span class="count">${o.overdue.length} overdue</span>
+      <span class="what">Holding up ${esc(o.hires.join(", "))}${o.atRisk.length ? ` · ${o.atRisk.length} more due soon` : ""}</span>
+    </button></li>`).join("");
+    $("allClear").hidden = owners.length > 0;
+    $("nudgeBox").hidden = !owners.length;
+    const sel = owners.find((o) => o.owner === selectedOwner);
+    if (sel) {
+      $("nudgeTitle").textContent = `Drafted nudge to ${sel.owner}`;
+      $("nudgeText").textContent = E.nudge(sel, cfg.rules.atRiskDays);
+    }
+
+    $("cols").innerHTML = cols.map((c) => {
+      const h = c.hire;
+      const pct = c.total ? Math.round((c.done / c.total) * 100) : 0;
+      const groups = E.PHASES.map((p) => {
+        const ts = c.tasks.filter((t) => t.phase === p.id);
+        return ts.length ? `<div class="phase"><h4>${p.label}</h4><ul class="tasks">${ts.map(taskLi).join("")}</ul></div>` : "";
+      }).join("");
+      return `<article class="card col" aria-label="${esc(h.name)}">
+        <div class="col-top">
+          <div class="row"><span class="eyebrow${c.overdue.length ? " red" : ""}">${esc(h.name)} · ${startsText(c)}</span>${h.demo ? "" : `<button class="x" data-remove="${esc(h.id)}" aria-label="Remove ${esc(h.name)}">Remove</button>`}</div>
+          <h3>${esc(h.role)}</h3>
+          <p class="meta">Starts <b>${E.fmt(c.start)}</b> · Manager <b>${esc(h.manager)}</b>${h.deployment ? ` · Shadows <b>${esc(h.deployment)}</b>` : ""}</p>
+        </div>
+        <div class="ready">
+          <div class="ready-line"><span class="ready-num"><b>${c.done}</b>/${c.total} tasks done</span>
+            <span class="flags">${c.overdue.length ? `<span class="pill overdue">${c.overdue.length} overdue</span>` : ""}${c.atRisk.length ? `<span class="pill at_risk">${c.atRisk.length} at risk</span>` : ""}${!c.overdue.length && !c.atRisk.length ? `<span class="pill ok">On track</span>` : ""}</span></div>
+          <div class="bar" role="progressbar" aria-label="${esc(h.name)} readiness" aria-valuemin="0" aria-valuemax="${c.total}" aria-valuenow="${c.done}"><span style="width:${pct}%"></span></div>
+        </div>
+        <div class="mock"><span class="eyebrow plain">Next due</span>
+          ${c.next.length ? `<ul class="tasks">${c.next.map(taskLi).join("")}</ul>` : `<p class="hint">Every task is done.</p>`}
+        </div>
+        <details class="all" data-hire="${esc(h.id)}"${openAll.has(h.id) ? " open" : ""}><summary>All ${c.total} tasks</summary>${groups}</details>
+      </article>`;
+    }).join("");
+  }
+
+  $("owners").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-owner]"); if (!b) return;
+    selectedOwner = b.dataset.owner; renderBoard();
+  });
+  $("copyNudge").addEventListener("click", (e) => copy($("nudgeText").textContent, e.currentTarget));
+  $("cols").addEventListener("change", (e) => {
+    const cb = e.target.closest("input[data-task]"); if (!cb) return;
+    const h = cb.dataset.hire;
+    saved.done[h] = saved.done[h] || {};
+    saved.done[h][cb.dataset.task] = cb.checked;
+    save();
+    const focusId = cb.id;
+    renderBoard();
+    const again = document.getElementById(focusId); if (again) again.focus();
+  });
+  $("cols").addEventListener("toggle", (e) => {
+    const d = e.target; if (!d.matches || !d.matches("details[data-hire]")) return;
+    d.open ? openAll.add(d.dataset.hire) : openAll.delete(d.dataset.hire);
+  }, true);
+  $("cols").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-remove]"); if (!b) return;
+    saved.added = saved.added.filter((h) => h.id !== b.dataset.remove);
+    delete saved.done[b.dataset.remove];
+    save(); renderBoard(); renderAddDefaults(false);
+  });
+
+  // Add a hire
+  const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? " selected" : ""}>${esc(label ?? v)}</option>`;
+  function nextName() {
+    const used = new Set(hires().map((h) => h.name));
+    for (let i = 0; i < 26; i++) { const n = "Hire " + String.fromCharCode(68 + i > 90 ? 65 + i : 68 + i); if (!used.has(n)) return n; }
+    return "New hire";
+  }
+  function renderAddOptions() {
+    const role = $("fRole").value;
+    $("fRole").innerHTML = cfg.openRoles.map((r) => opt(r, r, r === role)).join("") + opt("Other", "Other (common tasks only)", role === "Other");
+    const ownerNames = Object.values(cfg.owners).map((o) => o.name);
+    const m = $("fManager").value || "Owner D";
+    $("fManager").innerHTML = Object.values(cfg.owners).map((o) => opt(o.name, `${o.name} · ${o.team}`, o.name === m)).join("");
+    if (!ownerNames.includes(m)) $("fManager").selectedIndex = 0;
+    const d = $("fDeploy").value;
+    $("fDeploy").innerHTML = opt("", "None yet") + cfg.deployments.map((x) => opt(x, x, x === d)).join("");
+  }
+  function renderAddDefaults(resetRole) {
+    $("fName").value = nextName();
+    if (resetRole) { $("fRole").value = "SAP Functional Consultant"; $("fDeploy").value = "Company C"; $("fManager").value = "Owner D"; }
+    renderPlan();
+  }
+  function formHire() {
+    return { id: "hire-" + Date.now(), name: $("fName").value.trim() || nextName(), role: $("fRole").value,
+      start: $("fStart").value || E.iso(E.addDays(today, 27)), manager: $("fManager").value, deployment: $("fDeploy").value };
+  }
+  function renderPlan() {
+    const h = formHire();
+    const plan = E.buildPlan(cfg, h, today);
+    const start = E.parseISO(h.start);
+    $("planTitle").textContent = `${h.name}, ${h.role === "Other" ? "other role" : h.role}: ${plan.length} tasks, starting ${E.fmt(start)}`;
+    const r = cfg.roles[h.role];
+    $("planNote").hidden = !!r;
+    $("planNote").textContent = r ? "" : "No playbook for this role yet, so it gets the common tasks only. Add its tasks in How it works.";
+    $("phases").innerHTML = E.PHASES.map((p) => {
+      const ts = plan.filter((t) => t.phase === p.id);
+      return `<div class="mock"><span class="eyebrow plain">${p.label} · ${ts.length}</span>${ts.map((t) => `<div class="ptask">
+        <span>${esc(t.task)}</span>
+        <small>${esc(t.owner)}${t.team ? " · " + esc(t.team) : ""} · ${E.fmt(t.due)} (day ${t.day >= 0 ? "+" : "−"}${Math.abs(t.day)})</small>
+        ${t.source ? `<span class="src">“${esc(t.source.quote)}” (${esc(t.source.from === "site" ? "flowgenlabs.com" : t.source.from + " posting")})</span>` : ""}
+      </div>`).join("") || `<p class="hint">Nothing in this phase.</p>`}</div>`;
+    }).join("");
+  }
+  $("fStart").value = E.iso(E.addDays(today, 27));
+  $("addForm").addEventListener("input", renderPlan);
+  $("addForm").addEventListener("submit", (e) => e.preventDefault());
+  $("addBtn").addEventListener("click", () => {
+    if (!$("fStart").value) { $("addStatus").textContent = "Pick a start date first."; return; }
+    const h = formHire();
+    saved.added.push(h); save();
+    renderBoard(); renderAddDefaults(false);
+    $("addStatus").textContent = `${h.name} added.`;
+    show("board");
+    const col = document.querySelector(`#cols [aria-label="${CSS.escape(h.name)}"]`);
+    if (col) col.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  // Ask
+  function qaCard(res) {
+    const thr = hb.threshold;
+    const top = res.top;
+    const score = top ? top.score : 0;
+    const meter = `<div class="meter${res.confident ? "" : " low"}" aria-hidden="true"><span style="width:${Math.min(100, score * 100)}%"></span><i style="left:${thr * 100}%"></i></div>`;
+    const scoreLine = `<span class="score">Match ${score.toFixed(2)} · threshold ${thr.toFixed(2)}</span>`;
+    if (res.confident) {
+      const owner = (cfg.owners[top.entry.owner] || {}).name || top.entry.owner;
+      return `<article class="card qa"><span class="eyebrow">Answered from the handbook</span><p class="q">${esc(res.question)}</p>
+        <p class="a">${esc(top.entry.answer)}</p>
+        ${meter}<div class="from">${scoreLine}<span>Entry used: <b>${esc(top.entry.title)}</b> · owner ${esc(owner)}</span></div></article>`;
+    }
+    const x = E.escalation(cfg, res);
+    return `<article class="card qa"><span class="eyebrow red">Not confident, routed to ${esc(x.owner)}</span><p class="q">${esc(res.question)}</p>
+      <p class="a">I'm not sure enough to answer this from the handbook${x.entry ? `. The closest entry is <b>${esc(x.entry.title)}</b>, so it goes to its owner, ${esc(x.owner)}${x.team ? " (" + esc(x.team) + ")" : ""}` : `, so it goes to ${esc(x.owner)}`}. Drafted message:</p>
+      <pre class="msg">${esc(x.msg)}</pre>
+      ${meter}<div class="from">${scoreLine}<span>Below the threshold, so it doesn't guess.</span></div></article>`;
+  }
+  const thread = [];
+  function askQ(q, top = true) {
+    q = String(q || "").trim(); if (!q) return;
+    const res = E.ask(index, q, hb.threshold);
+    top ? thread.unshift(res) : thread.push(res);
+    $("thread").innerHTML = thread.map(qaCard).join("");
+  }
+  function rerunThread() {
+    const qs = thread.map((r) => r.question); thread.length = 0;
+    qs.forEach((q) => askQ(q, false));
+    $("hbThresh").textContent = hb.threshold.toFixed(2);
+    $("hbCount").textContent = hb.entries.length;
+  }
+  $("askForm").addEventListener("submit", (e) => { e.preventDefault(); askQ($("askInput").value); $("askInput").value = ""; });
+  for (const q of window.ASK_EXAMPLES) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = q;
+    b.addEventListener("click", () => askQ(q)); $("examples").appendChild(b);
+  }
+
+  // How it works
+  function renderSources() {
+    const items = [];
+    const seen = new Set();
+    const add = (t, label) => { if (!t.source) return; const k = t.source.quote; if (seen.has(k)) return; seen.add(k);
+      items.push(`<li><span><b>${esc(t.task.replace(/\{deployment\}/g, "Company A"))}</b> <small>${esc(label)}</small></span><blockquote>“${esc(t.source.quote)}”</blockquote><small>From <a href="${esc(t.source.url)}" target="_blank" rel="noopener">${esc(t.source.from === "site" ? "flowgenlabs.com" : t.source.from + " posting")}</a></small></li>`); };
+    cfg.common.forEach((t) => add(t, "all roles"));
+    for (const [k, f] of Object.entries(cfg.families)) f.tasks.forEach((t) => add(t, f.label || k));
+    for (const [r, v] of Object.entries(cfg.roles)) (v.tasks || []).forEach((t) => add(t, r));
+    $("sources").innerHTML = items.join("") + `<li><small>The other common tasks (paperwork, laptop, accounts, intros, founder 1:1, check-ins) are generic defaults, not sourced claims about how FlowGen works today.</small></li>`;
+  }
+  function renderHow() {
+    $("cfgText").value = JSON.stringify(cfg, null, 2);
+    $("hbText").value = JSON.stringify(hb, null, 2);
+    $("ruleDays").textContent = cfg.rules.atRiskDays;
+    renderSources();
+  }
+  function validCfg(c) {
+    if (!c.owners || !c.rules || !Array.isArray(c.common) || !c.families || !c.roles || !Array.isArray(c.openRoles)) throw new Error("Needs owners, rules, common, families, roles and openRoles.");
+    const all = [...c.common, ...Object.values(c.families).flatMap((f) => f.tasks || []), ...Object.values(c.roles).flatMap((r) => r.tasks || [])];
+    for (const t of all) {
+      if (!t.id || !t.task || typeof t.day !== "number") throw new Error(`Each task needs id, task and a numeric day (check “${t.task || t.id || "?"}”).`);
+      if (t.owner !== "manager" && !c.owners[t.owner]) throw new Error(`Unknown owner “${t.owner}” on “${t.task}”. Use a key from owners, or "manager".`);
+    }
+    if (!Array.isArray(c.deployments)) c.deployments = [];
+    return c;
+  }
+  function validHb(h) {
+    if (typeof h.threshold !== "number" || !Array.isArray(h.entries) || !h.entries.length) throw new Error("Needs a numeric threshold and a list of entries.");
+    for (const e of h.entries) if (!e.id || !e.title || !e.answer || !e.owner) throw new Error(`Each entry needs id, title, owner and answer (check “${e.title || e.id || "?"}”).`);
+    return h;
+  }
+  function applied(statusId, msg, err) { $(statusId).textContent = msg; $(statusId).className = "status" + (err ? " err" : ""); }
+  $("cfgApply").addEventListener("click", () => {
+    try { cfg = validCfg(JSON.parse($("cfgText").value)); saved.config = cfg; save(); refreshAll(); applied("cfgStatus", "Applied. Board and plan updated."); }
+    catch (e) { applied("cfgStatus", e.message, true); }
+  });
+  $("cfgReset").addEventListener("click", () => { cfg = clone(window.DEFAULT_CONFIG); saved.config = null; save(); refreshAll(); applied("cfgStatus", "Back to the default playbooks."); });
+  $("hbApply").addEventListener("click", () => {
+    try { hb = validHb(JSON.parse($("hbText").value)); index = E.buildIndex(hb.entries); saved.handbook = hb; save(); rerunThread(); renderHow(); applied("hbStatus", "Applied. Answers re-run."); }
+    catch (e) { applied("hbStatus", e.message, true); }
+  });
+  $("hbReset").addEventListener("click", () => { hb = clone(window.DEFAULT_HANDBOOK); index = E.buildIndex(hb.entries); saved.handbook = null; save(); rerunThread(); renderHow(); applied("hbStatus", "Back to the default handbook."); });
+  $("resetAll").addEventListener("click", () => { saved.done = {}; saved.added = []; save(); renderBoard(); renderAddDefaults(false); });
+
+  function refreshAll() { renderBoard(); renderAddOptions(); renderPlan(); renderHow(); rerunThread(); }
+
+  renderAddOptions();
+  renderAddDefaults(true);
+  renderBoard();
+  renderHow();
+  window.ASK_PRELOAD.forEach((q) => askQ(q, false));
+  $("hbThresh").textContent = hb.threshold.toFixed(2);
+  $("hbCount").textContent = hb.entries.length;
+})();
+</script>
+</body>
+</html>
